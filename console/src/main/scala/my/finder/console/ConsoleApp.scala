@@ -13,7 +13,7 @@ object ConsoleApp {
   def main(args : Array[String]) {
     Config.init("console.properties")
     val system = ActorSystem.create("ConsoleApp", ConfigFactory.load().getConfig("console"))
-    val index = system.actorOf(Props[RootActor], "root")
+    val root = system.actorOf(Props[RootActor], "root")
 
     /*0 to 100 foreach{
       i => index ! CommandParseMessage("ddProduct")
@@ -24,7 +24,11 @@ object ConsoleApp {
       command = scanner.nextLine()
       if (command == "indexDDProduct") {
         println("send command indexDDProduct")
-        index ! CommandParseMessage(Constants.DD_PRODUCT)
+        root ! CommandParseMessage(Constants.DD_PRODUCT)
+      }
+      if (command == "search") {
+        println("send command search")
+        root ! CommandParseMessage("search")
       }
     }
   }

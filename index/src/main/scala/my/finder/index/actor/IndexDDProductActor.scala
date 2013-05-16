@@ -104,7 +104,14 @@ class IndexDDProductActor extends Actor with ActorLogging with MongoUtil{
 
 
           list = x.as[MongoDBList]("ec_productprice")
-          priceField.setDoubleValue(list.as[DBObject](0).as[Double]("unitprice_money"))
+
+          try{
+            priceField.setDoubleValue(list.as[DBObject](0).as[Double]("unitprice_money"))
+            doc.add(isOneSaleField)
+          } catch {
+            case e:Exception =>
+          }
+
 
 
           try{

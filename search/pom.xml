@@ -21,6 +21,10 @@
     <artifactId>search</artifactId>
     <dependencies>
         <dependency>
+            <groupId>my.finder</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-slf4j_2.10</artifactId>
         </dependency>

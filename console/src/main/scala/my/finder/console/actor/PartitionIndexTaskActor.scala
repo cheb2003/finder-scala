@@ -36,8 +36,8 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
   val dinobuydb = Config.get("dinobuydb")
   val ddProductIndexSize:Int = Integer.valueOf(Config.get("ddProductIndexSize"))
   val productColl = mongoClient(dinobuydb)("ec_productinformation")
-  var q:DBObject = ("ec_productprice.unitprice_money" $gt 0) ++ ("ec_product.isstopsale_bit" -> false)
-  //var q:DBObject = MongoDBObject.empty
+  //TODO 改回来 var q:DBObject = ("ec_productprice.unitprice_money" $gt 0) ++ ("ec_product.isstopsale_bit" -> false)
+  var q:DBObject = MongoDBObject.empty
   val fields = MongoDBObject("productid_int" -> 1)
   val indexActor = context.system.actorOf(Props[IndexDDProductActor].withRouter(FromConfig()),"node")
   val mergeIndex = context.actorOf(Props[MergeIndexActor],"mergeIndex")
