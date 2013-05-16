@@ -11,7 +11,7 @@ import my.finder.common.util.{Config, Constants}
  */
 object ConsoleApp {
   def main(args : Array[String]) {
-    Config.init
+    Config.init("console.properties")
     val system = ActorSystem.create("ConsoleApp", ConfigFactory.load().getConfig("console"))
     val index = system.actorOf(Props[RootActor], "root")
 

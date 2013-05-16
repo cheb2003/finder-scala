@@ -1,4 +1,4 @@
-package com.dd.finder.search.service;
+package my.finder.search.service;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -27,7 +27,7 @@ public class SearcherManager {
     public void init(){
         IndexReader reader;
         try {
-            Directory dir= FSDirectory.open(new File(indexDir + "/" + "dd_product"));
+            Directory dir= FSDirectory.open(new File("d:\\indexs\\ddProduct_2013-05-15-18-47-18\\final\\"));
             reader = DirectoryReader.open(dir);
         } catch (IOException e) {
             logger.error("{}", e);

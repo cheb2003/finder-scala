@@ -1,4 +1,4 @@
-package com.dd.finder.search.web.util;
+package my.finder.search.web.util;
 
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 

@@ -35,9 +35,9 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
   val mongoClient =  MongoClient(uri)
   val dinobuydb = Config.get("dinobuydb")
   val ddProductIndexSize:Int = Integer.valueOf(Config.get("ddProductIndexSize"))
-  val productColl = mongoClient(dinobuydb)("EC_ProductInformation")
-  //var q:DBObject = ("ec_product.productprice_money" $gt 0) ++ ("ec_product.isstopsale_bit" -> false)
-  var q:DBObject = MongoDBObject.empty
+  val productColl = mongoClient(dinobuydb)("ec_productinformation")
+  var q:DBObject = ("ec_productprice.unitprice_money" $gt 0) ++ ("ec_product.isstopsale_bit" -> false)
+  //var q:DBObject = MongoDBObject.empty
   val fields = MongoDBObject("productid_int" -> 1)
   val indexActor = context.system.actorOf(Props[IndexDDProductActor].withRouter(FromConfig()),"node")
   val mergeIndex = context.actorOf(Props[MergeIndexActor],"mergeIndex")
@@ -47,14 +47,12 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
 
   override def preStart() {
     mongoClient.setReadPreference(ReadPreference.SecondaryPreferred)
-
   }
 
   def receive = {
     //分发子任务
     case msg:PartitionIndexTaskMessage => {
       if(msg.name == Constants.DD_PRODUCT){
-        log.info("send subtask ddproduct")
         partitionDDProduct()
       }
     }
@@ -65,7 +63,7 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
       val i = obj("completed") + 1
       obj += ("completed" -> i)
       subTaskMap += (key -> obj)
-      log.info("完成子任务 {},{},{}。当前完成数{}/{}", Array(msg.name,msg.runId,msg.seq,i,subTaskMap(key)("total")))
+      log.info("completed sub task {},{},{}。current {}/{}", Array(msg.name,msg.runId,msg.seq,i,subTaskMap(key)("total")))
       if(subTaskMap(key)("completed") >= subTaskMap(key)("total")){
         mergeIndex ! MergeIndexMessage(msg.name,msg.runId,subTaskMap(key)("total"))
       }

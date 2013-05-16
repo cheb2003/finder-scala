@@ -7,8 +7,8 @@ import java.util.Properties
  */
 object Config {
   val p:Properties = new Properties()
-  def init = {
-      val in = this.getClass.getClassLoader.getResourceAsStream("conf.properties")
+  def init(s:String) = {
+      val in = this.getClass.getClassLoader.getResourceAsStream(s)
       p.load(in)
       in.close()
   }

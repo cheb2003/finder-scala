@@ -4,6 +4,7 @@ import com.mongodb.casbah.Imports._
 import com.mongodb.util.JSON
 import scala.io.Source
 import my.finder.common.util.Config
+import java.util.Date
 
 /**
  *
@@ -12,14 +13,26 @@ object TestMongo {
   def main(args: Array[String]) {
     /*Config.init
     println(Config.get("workDir"))*/
-    val mongoClient =  MongoClient("172.16.20.9", 27017)
+    val uri = new MongoClientURI("mongodb://admin:admin@172.16.20.9/?authMechanism=MONGODB-CR")
+    val mongoClient =  MongoClient(uri)
     var productColl = mongoClient("dinobuydb")("ec_productinformation")
     //var q = ("ec_product" -> MongoDBObject("isstopsale_bit" -> false))
-    var q:DBObject = ("ec_product.productprice_money" $gt 0) ++ ("ec_product.isstopsale_bit" -> false)
+    var q:DBObject = ("ec_productprice.unitprice_money" $gt 0) ++ ("ec_product.isstopsale_bit" -> false)
+    //var q = MongoDBObject.empty
     //var q:DBObject = MongoDBObject("ec_product.isstopsale_bit" -> false)
     val fields = MongoDBObject("productid_int" -> 1,"ec_product.productaliasname_nvarchar" -> 1
       ,"ec_product.createtime_DateTime" -> 1,"ec_product.discountprice_money" -> 1
       ,"ec_product.productscore_float" -> 1)
+    val b = MongoDBList.newBuilder
+    b+=MongoDBObject("language_nvarchar" -> "ru","producttitle_nvarchar" -> "fdf3")
+    b+=MongoDBObject("language_nvarchar" -> "br","producttitle_nvarchar" -> "brf3")
+    for(x <- productColl.find(q)){
+      //x.as[DBObject]("ec_product").as[String]("productaliasname_nvarchar")
+      //productColl.update[DBObject,DBObject](MongoDBObject("_id" -> x._id),$set ("ec_productlanguage" -> b.result))
+      productColl.update[DBObject,DBObject](MongoDBObject("_id" -> x._id),$set ("ec_product.createtime_datetime" -> new Date()))
+    }
+
+    println(productColl.findOne())
     //val sort = MongoDBObject("productid_int" -> -1)
     //,"ec_product.producttypeid_int" -> 1
     /*for(x <- Source.fromFile("f:/product.json").getLines()){
@@ -43,7 +56,7 @@ object TestMongo {
       //println(x.as[DBObject]("ec_product").as[String]("productaliasname_nvarchar"))
       println(x)
     }*/
-    println(productColl.count(q))
+
     /*for(x <- productColl.find(q)){
       println(x.as[DBObject]("ec_product").as[String]("productaliasname_nvarchar"))
     }*/

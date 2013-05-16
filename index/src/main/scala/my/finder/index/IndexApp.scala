@@ -13,7 +13,7 @@ object IndexApp {
 
   
   def main(args : Array[String]) {
-    Config.init
+    Config.init("index.properties")
     val system = ActorSystem("nodeApp", ConfigFactory
       .load().getConfig("node"))
     /*system.actorOf(Props[IndexDDProductActor], name = "indexActor")*/
