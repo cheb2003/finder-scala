@@ -34,10 +34,10 @@ public class SearchController {
     @Autowired
     private SearcherManager searcherManager;
 
-    @RequestMapping(value = "/product/xml/{country}/{keyword}/{currentPage}/{size}/{sort}", produces = "text/xml;charset=utf-8")
+    @RequestMapping(value = "/product/xml/{country}/{indexCode}/{keyword}/{currentPage}/{size}/{sort}/{range}", produces = "text/xml;charset=utf-8")
     @ResponseBody
-    public Object modifyPassword(@PathVariable String country,@PathVariable String keyword,@PathVariable Integer currentPage,@PathVariable Integer size,
-                                 @PathVariable String sort) {
+    public Object modifyPassword(@PathVariable String country,@PathVariable String indexCode,@PathVariable String keyword,@PathVariable Integer currentPage,@PathVariable Integer size,
+                                 @PathVariable String sort,@PathVariable String ragne) {
         if (currentPage < 1) {
             currentPage = 1;
         }
@@ -49,36 +49,60 @@ public class SearchController {
         Document doc = null;
         try {
             keyword = keyword.trim();
-            //keyword = QueryParser.escape(keyword);
+            keyword = QueryParser.escape(keyword);
+            String[] keywords = keyword.split(" ");
+
             /*String[] keywordSplit = keyword.split(" ");
             StringBuilder sbKeyword = new StringBuilder();
             for (String str : keywordSplit) {
                 sbKeyword.append('+').append(str).append(' ');
             }*/
-            QueryParser parser = new QueryParser(Version.LUCENE_40,
-                    "pName", new StandardAnalyzer(
-                    Version.LUCENE_40));
+            QueryParser parser = new QueryParser(Version.LUCENE_40,"pName", new StandardAnalyzer(Version.LUCENE_40));
+            QueryParser parserRu = new QueryParser(Version.LUCENE_40,"pNameRU", new StandardAnalyzer(Version.LUCENE_40));
             String langName = null;
             if ("ru".equals(country)) {
                 langName = "pNameRU";
             }
             BooleanQuery bq = new BooleanQuery();
-
+            BooleanQuery bqKeyRu = new BooleanQuery();
+            BooleanQuery bqKeyEn = new BooleanQuery();
             if (langName != null) {
-                Term term = new Term(langName,keyword);
-                PrefixQuery pq = new PrefixQuery(term);
-                pq.setBoost(5.0f);
-                bq.add(pq, BooleanClause.Occur.SHOULD);
+                for (String k : keywords) {
+                    Term term = new Term(langName, k);
+                    PrefixQuery pq = new PrefixQuery(term);
+                    pq.setBoost(5.0f);
+                    bqKeyRu.add(pq, BooleanClause.Occur.MUST);
+                }
+
+                /*try {
+                    Query query = parserRu.parse(keyword);
+                    query.setBoost(5.0f);
+
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }*/
             }
 
+            bq.add(bqKeyRu, BooleanClause.Occur.SHOULD);
             Query condition = null;
+            for (String k : keywords) {
+                Term term = new Term("pName", k);
+                PrefixQuery pq = new PrefixQuery(term);
+                //pq.setBoost(5.0f);
+                bqKeyEn.add(pq, BooleanClause.Occur.MUST);
+            }
+            bq.add(bqKeyEn, BooleanClause.Occur.SHOULD);
             try {
-                condition = parser.parse(keyword);
+                if(indexCode.equals("*")){
+                    //condition = parser.parse(keyword);
+                } else {
+                    condition = parser.parse(keyword + "indexCode:" + indexCode);
+                }
             } catch (ParseException e) {
                 logger.error("{}", e);
             }
 
-            bq.add(condition, BooleanClause.Occur.SHOULD);
+            //bq.add(condition, BooleanClause.Occur.SHOULD);
 
             //排序
             SortField sortField = null;
@@ -111,9 +135,15 @@ public class SearchController {
             //从0开始计算
             TopDocs topDocs = tsdc.topDocs(start - 1, size);
             ScoreDoc[] scoreDocs = topDocs.scoreDocs;
-            Element docsEle = root.addElement("docs");
+            /*Element productIdsEle = root.addElement("docs").addElement("productIds");
+            StringBuffer sb = new StringBuffer();
             for (int i = 0; i < scoreDocs.length; i++) {
-                docToXML(docsEle, searcher.getIndexReader().document(scoreDocs[i].doc));
+                sb.append(searcher.getIndexReader().document(scoreDocs[i].doc).get("pId")).append(',');
+            }
+            productIdsEle.addText(sb.substring(0, sb.length() - 1));*/
+            Element docs = root.addElement("docs");
+            for (int i = 0; i < scoreDocs.length; i++) {
+                docToXML(docs,searcher.getIndexReader().document(scoreDocs[i].doc));
             }
 
         } catch (DocumentException e) {
