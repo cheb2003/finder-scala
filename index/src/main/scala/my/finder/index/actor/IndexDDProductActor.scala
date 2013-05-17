@@ -1,7 +1,7 @@
 package my.finder.index.actor
 
 import akka.actor.{ActorLogging, Actor}
-import my.finder.index.service.IndexManager
+import my.finder.index.service.IndexWriteManager
 import com.mongodb.casbah.Imports._
 import my.finder.common.message.{CompleteSubTask, IndexTaskMessage}
 import org.apache.lucene.document._
@@ -15,8 +15,8 @@ import org.apache.lucene.util.Version
 import my.finder.common.message.CompleteSubTask
 import my.finder.common.message.IndexTaskMessage
 import java.util.Date
-import java.lang
 import org.apache.commons.lang.StringUtils
+import my.finder.index.service.MongoManager.mongoClient
 
 /**
  *
@@ -24,15 +24,10 @@ import org.apache.commons.lang.StringUtils
  */
 class IndexDDProductActor extends Actor with ActorLogging with MongoUtil{
   val workDir = Config.get("workDir")
-  val mongodbIP = Config.get("mongodbIP")
   val dinobuydb = Config.get("dinobuydb")
-  val mongodbUser = Config.get("mongodbUser")
-  val mongodbPassword = Config.get("mongodbPassword")
-  val mongodbPort = lang.Integer.valueOf(Config.get("mongodbPort"))
-  val uri = new MongoClientURI("mongodb://"+mongodbUser+":"+mongodbPassword+"@"+mongodbIP+":"+mongodbPort+"/?authMechanism=MONGODB-CR")
-  val mongoClient =  MongoClient(uri)
 
-  val productColl = mongoClient(dinobuydb)("ec_productinformation")//EC_ProductInformation
+
+  val productColl = mongoClient(dinobuydb)("ec_productinformation")
   val q:DBObject = MongoDBObject.empty
   //TODO 价格要变，店铺分类
   val fields = MongoDBObject("productid_int" -> 1,"ec_product.productaliasname_nvarchar" -> 1
@@ -66,7 +61,7 @@ class IndexDDProductActor extends Actor with ActorLogging with MongoUtil{
   def receive = {
     case msg:IndexTaskMessage => {
       println("IndexTaskMessage")
-      //val writer = IndexManager.getIndexWriter(msg.name,msg.runId)
+      //val writer = IndexWriteManager.getIndexWriter(msg.name,msg.runId)
       //var writer: IndexWriter = writerMap getOrElse (key,null)
       val key = Util.getKey(msg.name, msg.runId)
       val prefix = Util.getPrefixPath(workDir,key)
@@ -150,7 +145,7 @@ class IndexDDProductActor extends Actor with ActorLogging with MongoUtil{
         }
       }
       writer.close()
-      sender ! CompleteSubTask(msg.name,msg.runId,msg.seq)
+      //sender ! CompleteSubTask(msg.name,msg.runId,msg.seq)
     }
   }
 }

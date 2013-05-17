@@ -39,10 +39,12 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
   //TODO 改回来 var q:DBObject = ("ec_productprice.unitprice_money" $gt 0) ++ ("ec_product.isstopsale_bit" -> false)
   var q:DBObject = MongoDBObject.empty
   val fields = MongoDBObject("productid_int" -> 1)
-  val indexActor = context.system.actorOf(Props[IndexDDProductActor].withRouter(FromConfig()),"node")
-  val mergeIndex = context.actorOf(Props[MergeIndexActor],"mergeIndex")
+  //val indexActor = context.system.actorOf(Props[IndexDDProductActor].withRouter(FromConfig()),"node")
+  val indexActor = context.actorFor("akka://index@127.0.0.1:2554/user/root")
+  val indexManager = context.actorFor("akka://console@127.0.0.1:2552/user/root/indexManager")
+  //val mergeIndex = context.actorOf(Props[MergeIndexActor],"mergeIndex")
 
-  var subTaskMap = Map[String,Map[String,Int]]()
+
 
 
   override def preStart() {
@@ -56,38 +58,12 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
         partitionDDProduct()
       }
     }
-    //统计子任务完成数，完成后合并索引
-    case msg:CompleteSubTask => {
-      val key = Util.getKey(msg.name, msg.runId)
-      var obj:Map[String,Int] = subTaskMap.getOrElse(key,null)
-      val i = obj("completed") + 1
-      obj += ("completed" -> i)
-      subTaskMap += (key -> obj)
-      log.info("completed sub task {},{},{}。current {}/{}", Array(msg.name,msg.runId,msg.seq,i,subTaskMap(key)("total")))
-      if(subTaskMap(key)("completed") >= subTaskMap(key)("total")){
-        mergeIndex ! MergeIndexMessage(msg.name,msg.runId,subTaskMap(key)("total"))
-      }
-    }
+
   }
-  private def sendMsg(name:String,runId:String,seq:Int,set:Set[Int]) {
+  private def sendMsg(name:String,runId:String,seq:Int,set:Set[Int],total:Long) {
     indexActor ! IndexTaskMessage(Constants.DD_PRODUCT, runId,seq,set)
-    //管理索引子任务
-    val key = Util.getKey(name, runId)
-    var obj: Map[String, Int] = subTaskMap.getOrElse(key, null)
-    if (obj == null) {
-      //新建
-      var map = Map[String,Int]()
-      map += ("completed" -> 0)
-      map += ("total" -> 1)
-      subTaskMap += (key -> map)
-      log.info("create index {},task {}", key,subTaskMap(key)("total"))
-    } else {
-      //累计
-      val i = obj("total") + 1
-      obj += ("total" -> i)
-      subTaskMap += (key -> obj)
-      //log.info("add sub task {} to {}", key,subTaskMap(key)("total"))
-    }
+    indexManager ! CreateSubTask(name,runId,total)
+
   }
   def partitionDDProduct() = {
     val sdf:SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss")
@@ -95,6 +71,9 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
     var set:Set[Int] = Set()
     var i = 0
     var j = 0
+    val totalCount:Long = productColl.count()
+    //TODO
+    val total:Long = totalCount / ddProductIndexSize + 1
 
     for(x <- productColl.find(q,fields,0,1000)){
 
@@ -103,14 +82,14 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
       if(i > ddProductIndexSize){
         i = 0
         j+=1
-        sendMsg(Constants.DD_PRODUCT,nowStr,j,set)
+        sendMsg(Constants.DD_PRODUCT,nowStr,j,set,total)
         set = Set()
       }
     }
 
     if (i > 0) {
       j+=1
-      sendMsg(Constants.DD_PRODUCT,nowStr,j,set)
+      sendMsg(Constants.DD_PRODUCT,nowStr,j,set,total)
     }
   }
 }

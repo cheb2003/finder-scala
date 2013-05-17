@@ -27,7 +27,7 @@ public class SearcherManager {
     public void init(){
         IndexReader reader;
         try {
-            Directory dir= FSDirectory.open(new File("d:\\indexs\\ddProduct_2013-05-15-18-47-18\\final\\"));
+            Directory dir= FSDirectory.open(new File(indexDir));
             reader = DirectoryReader.open(dir);
         } catch (IOException e) {
             logger.error("{}", e);

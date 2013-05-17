@@ -27,9 +27,9 @@ class MergeIndexActor extends Actor with ActorLogging{
       iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)
 
       val writer = new IndexWriter(FSDirectory.open(new File(prefix + "final")),iwc)
-      for(x <- 1 to msg.total){
+      /*for(x <- 1 to msg.total){
         writer.addIndexes(FSDirectory.open(new File(prefix + x)))
-      }
+      }*/
       writer.forceMerge(1)
       writer.close()
       log.info("合并索引完成，{}",key);

@@ -1,6 +1,6 @@
 package my.finder.console
 import akka.actor.{Props, ActorSystem}
-import my.finder.console.actor.RootActor
+import my.finder.console.actor.ConsoleRootActor
 import my.finder.common.message.{CommandParseMessage, PartitionIndexTaskMessage, IndexTaskMessage}
 import com.typesafe.config.ConfigFactory
 import java.util.Scanner
@@ -12,22 +12,17 @@ import my.finder.common.util.{Config, Constants}
 object ConsoleApp {
   def main(args : Array[String]) {
     Config.init("console.properties")
-    val system = ActorSystem.create("ConsoleApp", ConfigFactory.load().getConfig("console"))
-    val root = system.actorOf(Props[RootActor], "root")
+    val system = ActorSystem.create("console", ConfigFactory.load().getConfig("console"))
+    val root = system.actorOf(Props[ConsoleRootActor], "root")
 
-    /*0 to 100 foreach{
-      i => index ! CommandParseMessage("ddProduct")
-    }*/
     val scanner = new Scanner(System.in)
-    var command:String = null//= scanner.nextLine()
+    var command:String = null
     while(true){
       command = scanner.nextLine()
       if (command == "indexDDProduct") {
-        println("send command indexDDProduct")
         root ! CommandParseMessage(Constants.DD_PRODUCT)
       }
       if (command == "search") {
-        println("send command search")
         root ! CommandParseMessage("search")
       }
     }

@@ -42,6 +42,7 @@
         </mvc:interceptor>
     </mvc:interceptors>-->
     <!--<mvc:resources mapping="/resources/**" location="/resources/"/>-->
+    <mvc:view-controller path="/**/*.html"/>
     <!--<mvc:view-controller path="/**/*.html"/>
     <mvc:resources mapping="/svg/**" location="/WEB-INF/classes/svg/"/>-->
     <!--<bean id="conversionService"
