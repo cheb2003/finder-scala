@@ -1,13 +1,16 @@
 package my.finder.search.web.controller;
 
 import my.finder.search.service.SearcherManager;
+import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentHelper;
@@ -16,11 +19,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.*;
 
@@ -31,22 +33,42 @@ import java.util.*;
 @RequestMapping("/search")
 public class SearchController {
     private Logger logger = LoggerFactory.getLogger(SearchController.class);
+    private ObjectMapper objectMapper = new ObjectMapper();
     @Autowired
     private SearcherManager searcherManager;
 
-    @RequestMapping(value = "/product/xml/{country}/{indexCode}/{keyword}/{currentPage}/{size}/{sort}/{range}", produces = "text/xml;charset=utf-8")
+    @RequestMapping(value = "/product/json/", produces = "text/plain;charset=utf-8")
     @ResponseBody
-    public Object modifyPassword(@PathVariable String country,@PathVariable String indexCode,@PathVariable String keyword,@PathVariable Integer currentPage,@PathVariable Integer size,
-                                 @PathVariable String sort,@PathVariable String ragne) {
+    public String modifyPassword(HttpServletRequest request) {
+        String error = null;
+        Map<String, Object> result = new HashMap<String, Object>();
+        String country = StringUtils.defaultIfBlank(request.getParameter("country"), "");
+        String indexCode = StringUtils.defaultIfBlank(request.getParameter("indexCode"), "");
+        String keyword = StringUtils.defaultIfBlank(request.getParameter("keyword"), "");
+        Integer currentPage = null;
+        try {
+            currentPage = Integer.valueOf(StringUtils.defaultIfBlank(request.getParameter("currentPage"), "1"));
+        } catch (Exception e) {
+            return getErrorJson(String.format("parse currentPage failed,value:%s",currentPage));
+        }
+        Integer size = null;
+        try {
+            size = Integer.valueOf(StringUtils.defaultIfBlank(request.getParameter("size"), "20"));
+        } catch (Exception e) {
+            return getErrorJson(String.format("parse size failed,value:%s",size));
+        }
+
+
+        String sort = StringUtils.defaultIfBlank(request.getParameter("sort"),"");
+
         if (currentPage < 1) {
             currentPage = 1;
         }
 
-        if (size < 1 || size > 1000) {
+            if (size < 1 || size > 100) {
             size = 1;
         }
 
-        Document doc = null;
         try {
             keyword = keyword.trim();
             keyword = QueryParser.escape(keyword);
@@ -58,7 +80,6 @@ public class SearchController {
                 sbKeyword.append('+').append(str).append(' ');
             }*/
             QueryParser parser = new QueryParser(Version.LUCENE_40,"pName", new StandardAnalyzer(Version.LUCENE_40));
-            QueryParser parserRu = new QueryParser(Version.LUCENE_40,"pNameRU", new StandardAnalyzer(Version.LUCENE_40));
             String langName = null;
             if ("ru".equals(country)) {
                 langName = "pNameRU";
@@ -73,14 +94,6 @@ public class SearchController {
                     pq.setBoost(5.0f);
                     bqKeyRu.add(pq, BooleanClause.Occur.MUST);
                 }
-
-                /*try {
-                    Query query = parserRu.parse(keyword);
-                    query.setBoost(5.0f);
-
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }*/
             }
 
             bq.add(bqKeyRu, BooleanClause.Occur.SHOULD);
@@ -88,22 +101,33 @@ public class SearchController {
             for (String k : keywords) {
                 Term term = new Term("pName", k);
                 PrefixQuery pq = new PrefixQuery(term);
-                //pq.setBoost(5.0f);
                 bqKeyEn.add(pq, BooleanClause.Occur.MUST);
             }
             bq.add(bqKeyEn, BooleanClause.Occur.SHOULD);
-            try {
-                if(indexCode.equals("*")){
-                    //condition = parser.parse(keyword);
-                } else {
-                    condition = parser.parse(keyword + "indexCode:" + indexCode);
+            if (!"".equals(indexCode)) {
+                try {
+                    condition = parser.parse("indexCode:" + indexCode + "*");
+                } catch (Exception e) {
+                    return getErrorJson("parse indexCode query failed,value:%s", indexCode);
                 }
-            } catch (ParseException e) {
-                logger.error("{}", e);
+
             }
+            //范围查询
+            String[] ranges = StringUtils.defaultIfBlank(request.getParameter("range"), "").split(",");
+            for (String range : ranges) {
+                String[] parts = range.split(":");
+                if (parts.length == 3) {
+                    if (parts[0].equals("unitPrice")) {
+                        NumericRangeQuery nrq = NumericRangeQuery.newDoubleRange("unitPrice",Double.valueOf(parts[1]),Double.valueOf(parts[2]),true,true);
+                        bq.add(nrq, BooleanClause.Occur.MUST);
+                    }
+                    if (parts[0].equals("createTime")) {
+                        TermRangeQuery query = new TermRangeQuery("createTime", new BytesRef(parts[1]), new BytesRef(parts[2]), true, true);
+                        bq.add(query, BooleanClause.Occur.MUST);
+                    }
+                }
 
-            //bq.add(condition, BooleanClause.Occur.SHOULD);
-
+            }
             //排序
             SortField sortField = null;
             if ("price-".equals(sort)) {
@@ -124,34 +148,27 @@ public class SearchController {
                 sot = new Sort(sortField);
             }
             IndexSearcher searcher = searcherManager.getSearcher("dd_product");
-            doc = DocumentHelper.parseText("<response></response>");
-            Element root = doc.getRootElement();
             int start = (currentPage - 1) * size + 1;
             //分页
             TopFieldCollector tsdc = TopFieldCollector.create(sot, start + size, false, false, false, false);
             logger.info("{}",bq);
             searcher.search(bq, tsdc);
-            root.addElement("totalHits").addText(String.valueOf(tsdc.getTotalHits()));
+            result.put("totalHits", tsdc.getTotalHits());
+
             //从0开始计算
             TopDocs topDocs = tsdc.topDocs(start - 1, size);
             ScoreDoc[] scoreDocs = topDocs.scoreDocs;
-            /*Element productIdsEle = root.addElement("docs").addElement("productIds");
-            StringBuffer sb = new StringBuffer();
+            List<Long> ids = new ArrayList<Long>();
             for (int i = 0; i < scoreDocs.length; i++) {
-                sb.append(searcher.getIndexReader().document(scoreDocs[i].doc).get("pId")).append(',');
+                ids.add(Long.valueOf(searcher.getIndexReader().document(scoreDocs[i].doc).get("pId")));
             }
-            productIdsEle.addText(sb.substring(0, sb.length() - 1));*/
-            Element docs = root.addElement("docs");
-            for (int i = 0; i < scoreDocs.length; i++) {
-                docToXML(docs,searcher.getIndexReader().document(scoreDocs[i].doc));
-            }
+            result.put("productIds", ids);
 
-        } catch (DocumentException e) {
-            e.printStackTrace();
+            return objectMapper.writeValueAsString(result);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("{}",e);
         }
-        return doc.asXML();
+        return "{\"totalHits\":0,\"productIds\":[]}";
     }
 
 
@@ -162,5 +179,18 @@ public class SearchController {
         for (IndexableField field : fields) {
             docEle.addElement(field.name()).addCDATA(field.stringValue());
         }
+    }
+
+    private String getErrorJson(String error,Object ... parmas){
+        error = String.format(error,parmas);
+        logger.error(error);
+        Map<String,String> map = new HashMap<String,String>();
+        map.put("error", error);
+        try {
+            return objectMapper.writeValueAsString(map);
+        } catch (IOException e) {
+            logger.error("{}",e);
+        }
+        return "";
     }
 }
