@@ -3,11 +3,12 @@ package my.finder.index.service
 import org.apache.lucene.index.{IndexWriterConfig, IndexWriter}
 import org.apache.lucene.store.{FSDirectory, Directory}
 import java.io.File
-import org.apache.lucene.analysis.standard.StandardAnalyzer
+
 import org.apache.lucene.util.Version
 import my.finder.common.util.{Config, Util}
 import akka.actor.Actor
 import my.finder.common.message.{MergeIndexMessage, CloseIndexWriterMessage}
+import my.finder.index.Analyzer.MyAnalyzer
 
 /**
  *
@@ -25,7 +26,7 @@ object IndexWriteManager{
       var writer: IndexWriter = writerMap getOrElse (key,null)
       if (writer == null) {
         val directory = FSDirectory.open(new File(prefix))
-        val analyzer = new StandardAnalyzer(Version.LUCENE_40);
+        val analyzer = new MyAnalyzer();
         val iwc = new IndexWriterConfig(Version.LUCENE_40, analyzer)
         iwc.setRAMBufferSizeMB(128)
         iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)

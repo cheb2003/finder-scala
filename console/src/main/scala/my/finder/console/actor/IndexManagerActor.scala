@@ -10,6 +10,7 @@ import my.finder.common.util.Util
 class IndexManagerActor extends Actor with ActorLogging{
   var subTaskMap = Map[String,Map[String,Long]]()
 
+
   def receive = {
     //统计子任务完成数，完成后合并索引
     case msg:CompleteSubTask => {

@@ -1,9 +1,9 @@
 package my.finder.search.web.controller;
 
+import my.finder.index.Analyzer.MyAnalyzer;
 import my.finder.search.service.SearcherManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.QueryParser;
@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
@@ -36,41 +37,215 @@ public class SearchController {
     @Autowired
     private SearcherManager searcherManager;
 
-    @RequestMapping(value = "/product/json", produces = "application/json;charset=utf-8")
+    @RequestMapping(value = "/product/json", method = RequestMethod.POST,  produces = "application/json;charset=utf-8")
     @ResponseBody
     public String searchJson(HttpServletRequest request) {
         return search(request,"json");
     }
-    @RequestMapping(value = "/product/xml", produces = "text/xml;charset=utf-8")
+    @RequestMapping(value = "/product/xml", method = RequestMethod.POST,produces = "text/xml;charset=utf-8")
     @ResponseBody
     public String searchXml(HttpServletRequest request) {
         return search(request,"xml");
     }
 
-    @RequestMapping(value = "/product/shop/json", produces = "application/json;charset=utf-8")
+    @RequestMapping(value = "/product/shop/json",method = RequestMethod.POST, produces = "application/json;charset=utf-8")
     @ResponseBody
     public String searchByShopJSON(HttpServletRequest request) {
         return searchByShopFormat(request,"json");
     }
-    @RequestMapping(value = "/product/shop/xml", produces = "text/xml;charset=utf-8")
+    @RequestMapping(value = "/product/shop/xml",method = RequestMethod.POST, produces = "text/xml;charset=utf-8")
     @ResponseBody
     public String searchByShopXML(HttpServletRequest request) {
         return searchByShopFormat(request,"xml");
     }
 
-    @RequestMapping(value = "/product/category/json", produces = "application/json;charset=utf-8")
+    @RequestMapping(value = "/product/category/json",method = RequestMethod.POST, produces = "application/json;charset=utf-8")
     @ResponseBody
     public String searchByCategoryJSON(HttpServletRequest request) {
         return searchByCategoryFormat(request,"json");
     }
-    @RequestMapping(value = "/product/category/xml", produces = "text/xml;charset=utf-8")
+    @RequestMapping(value = "/product/category/xml",method = RequestMethod.POST, produces = "text/xml;charset=utf-8")
     @ResponseBody
     public String searchByCategoryXML(HttpServletRequest request) {
         return searchByCategoryFormat(request,"xml");
     }
 
+    @RequestMapping(value = "/product/newarrivals/xml",method = RequestMethod.POST, produces = "text/xml;charset=utf-8")
+    @ResponseBody
+    public String newArrivalsXML(HttpServletRequest request) {
+        return searchByNewArrivalsFormat(request, "xml");
+    }
+    @RequestMapping(value = "/product/newarrivals/json",method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+    @ResponseBody
+    public String newArrivalsJSON(HttpServletRequest request) {
+        return searchByNewArrivalsFormat(request,"json");
+    }
+
+    private String searchByNewArrivalsFormat(HttpServletRequest request, String format) {
+        Map<String, Object> result = new HashMap<String, Object>();
+
+        String sort = StringUtils.defaultIfBlank(request.getParameter("sort"),"");
+        String fromTime = StringUtils.defaultIfBlank(request.getParameter("fromTime"),"");
+        String toTime = StringUtils.defaultIfBlank(request.getParameter("toTime"),"");
+        String indexCode = StringUtils.defaultIfBlank(request.getParameter("indexCode"),"");
+
+        Integer currentPage = null;
+        try {
+            currentPage = Integer.valueOf(StringUtils.defaultIfBlank(request.getParameter("currentPage"), "1"));
+        } catch (Exception e) {
+            return getErrorJson(String.format("parse currentPage failed,value:%s",currentPage));
+        }
+        Integer size = null;
+        try {
+            size = Integer.valueOf(StringUtils.defaultIfBlank(request.getParameter("size"), "20"));
+        } catch (Exception e) {
+            return getErrorJson(String.format("parse size failed,value:%s",size));
+        }
+
+
+        if (currentPage < 1) {
+            currentPage = 1;
+        }
+
+        if (size < 1 || size > 100) {
+            size = 1;
+        }
+
+        Query condition;
+        QueryParser parser = new QueryParser(Version.LUCENE_40,"pName", new MyAnalyzer());
+        BooleanQuery bq = new BooleanQuery();
+        if (!"".equals(indexCode)) {
+            try {
+                condition = parser.parse("indexCode:" + indexCode + "*");
+                bq.add(condition, BooleanClause.Occur.MUST);
+            } catch (Exception e) {
+                return getErrorJson("parse indexCode query failed,value:%s", indexCode);
+            }
+
+        }
+        TermRangeQuery q = new TermRangeQuery("createTime", new BytesRef(fromTime), new BytesRef(toTime), true, true);
+        bq.add(q, BooleanClause.Occur.MUST);
+        IndexSearcher searcher = searcherManager.getSearcher("dd_product");
+        if (searcher == null) {
+            return empty();
+        }
+        int start = (currentPage - 1) * size + 1;
+        //排序
+        Sort sot = sorts(sort);
+        //分页
+        try {
+            TopFieldCollector tsdc = TopFieldCollector.create(sot, start + size, false, false, false, false);
+            logger.info("{}",bq);
+            searcher.search(bq, tsdc);
+            result.put("totalHits", tsdc.getTotalHits());
+
+            //从0开始计算
+            TopDocs topDocs = tsdc.topDocs(start - 1, size);
+            ScoreDoc[] scoreDocs = topDocs.scoreDocs;
+            List<Long> ids = new ArrayList<Long>();
+            Document doc = DocumentHelper.parseText("<root/>");
+            Element docs = doc.getRootElement().addElement("docs");
+            for (int i = 0; i < scoreDocs.length; i++) {
+                org.apache.lucene.document.Document indexDoc = searcher.getIndexReader().document(scoreDocs[i].doc);
+                ids.add(Long.valueOf(indexDoc.get("pId")));
+                if ("xml".equals(format)) {
+                    docToXML(docs,indexDoc);
+                }
+            }
+            result.put("productIds", ids);
+            if("xml".equals(format)) {
+                return doc.asXML();
+            }
+            if("json".equals(format)) {
+                return objectMapper.writeValueAsString(result);
+            }
+        } catch (Exception e) {
+            logger.error("{}",e);
+        }
+        return empty();
+    }
+
+    @RequestMapping(value = "/product/test/xml",method = RequestMethod.POST, produces = "text/xml;charset=utf-8")
+    @ResponseBody
+    private String testProduct(HttpServletRequest request, String format) {
+        format = "xml";
+        Map<String, Object> result = new HashMap<String, Object>();
+        //String shop = StringUtils.defaultIfBlank(request.getParameter("shop"), "");
+        String search = StringUtils.defaultIfBlank(request.getParameter("search"), "");
+        String sort = StringUtils.defaultIfBlank(request.getParameter("sort"),"");
+        /*if ("".equals(shop)) {
+            return empty();
+        }
+        shop = "\"" + shop + "\"";*/
+        Integer currentPage = null;
+        try {
+            currentPage = Integer.valueOf(StringUtils.defaultIfBlank(request.getParameter("currentPage"), "1"));
+        } catch (Exception e) {
+            return getErrorJson(String.format("parse currentPage failed,value:%s",currentPage));
+        }
+        Integer size = null;
+        try {
+            size = Integer.valueOf(StringUtils.defaultIfBlank(request.getParameter("size"), "20"));
+        } catch (Exception e) {
+            return getErrorJson(String.format("parse size failed,value:%s",size));
+        }
+
+
+        if (currentPage < 1) {
+            currentPage = 1;
+        }
+
+        if (size < 1 || size > 100) {
+            size = 1;
+        }
+        QueryParser parser = new QueryParser(Version.LUCENE_40,"sku", new KeywordAnalyzer());
+        IndexSearcher searcher = searcherManager.getSearcher("dd_product");
+        if (searcher == null) {
+            return empty();
+        }
+        int start = (currentPage - 1) * size + 1;
+        //排序
+        Sort sot = sorts(sort);
+        //分页
+        try {
+            //TopFieldCollector tsdc = TopFieldCollector.create(sot, start + size, false, false, false, false);
+            //Query q = parser.parse(search);
+            Term t = new Term("sku", search);
+            TermQuery tq = new TermQuery(t);
+            logger.info("{}",tq);
+            TopDocs topDocs1 = searcher.search(tq, 100);
+            result.put("totalHits", topDocs1.totalHits);
+
+            //从0开始计算
+            //TopDocs topDocs = topDocs1.topDocs(start - 1, size);
+            ScoreDoc[] scoreDocs = topDocs1.scoreDocs;
+            List<Long> ids = new ArrayList<Long>();
+            Document doc = DocumentHelper.parseText("<root/>");
+            Element docs = doc.getRootElement().addElement("docs");
+            for (int i = 0; i < scoreDocs.length; i++) {
+                org.apache.lucene.document.Document indexDoc = searcher.getIndexReader().document(scoreDocs[i].doc);
+                ids.add(Long.valueOf(indexDoc.get("pId")));
+                if ("xml".equals(format)) {
+                    docToXML(docs,indexDoc);
+                }
+            }
+
+            result.put("productIds", ids);
+            if("xml".equals(format)) {
+                return doc.asXML();
+            }
+            if("json".equals(format)) {
+                return objectMapper.writeValueAsString(result);
+            }
+        } catch (Exception e) {
+            logger.error("{}",e);
+        }
+        return empty();
+    }
+
+
     private String search(HttpServletRequest request,String format) {
-        String keyword = StringUtils.defaultIfBlank(request.getParameter("keyword"), "");
+        String keyword = StringUtils.defaultIfBlank(request.getParameter("keyword"), "").toLowerCase();
         if ("".equals(keyword)) {
             return empty();
         }
@@ -107,10 +282,13 @@ public class SearchController {
             keyword = QueryParser.escape(keyword);
             String[] keywords = keyword.split(" ");
 
-            QueryParser parser = new QueryParser(Version.LUCENE_40,"pName", new StandardAnalyzer(Version.LUCENE_40));
+            QueryParser parser = new QueryParser(Version.LUCENE_40,"pName", new MyAnalyzer());
             String langName = null;
             if ("ru".equals(country)) {
                 langName = "pNameRU";
+            }
+            if ("br".equals(country)) {
+                langName = "pNameBR";
             }
             BooleanQuery bq = new BooleanQuery();
             BooleanQuery bqLang = new BooleanQuery();
@@ -149,6 +327,9 @@ public class SearchController {
             Sort sot = sorts(sort);
 
             IndexSearcher searcher = searcherManager.getSearcher("dd_product");
+            if (searcher == null) {
+                return empty();
+            }
             int start = (currentPage - 1) * size + 1;
             //分页
             TopFieldCollector tsdc = TopFieldCollector.create(sot, start + size, false, false, false, false);
@@ -228,7 +409,7 @@ public class SearchController {
 
     private String searchByShopFormat(HttpServletRequest request, String format) {
         Map<String, Object> result = new HashMap<String, Object>();
-        String shop = StringUtils.defaultIfBlank(request.getParameter("shop"), "");
+        String shop = StringUtils.defaultIfBlank(request.getParameter("shop"), "").toLowerCase();
         String sort = StringUtils.defaultIfBlank(request.getParameter("sort"),"");
         if ("".equals(shop)) {
             return empty();
@@ -257,6 +438,9 @@ public class SearchController {
         }
         QueryParser parser = new QueryParser(Version.LUCENE_40,"businessName", new KeywordAnalyzer());
         IndexSearcher searcher = searcherManager.getSearcher("dd_product");
+        if (searcher == null) {
+            return empty();
+        }
         int start = (currentPage - 1) * size + 1;
         //排序
         Sort sot = sorts(sort);
@@ -323,8 +507,11 @@ public class SearchController {
         if (size < 1 || size > 100) {
             size = 1;
         }
-        QueryParser parser = new QueryParser(Version.LUCENE_40,"indexCode", new StandardAnalyzer(Version.LUCENE_40));
+        QueryParser parser = new QueryParser(Version.LUCENE_40,"indexCode", new MyAnalyzer());
         IndexSearcher searcher = searcherManager.getSearcher("dd_product");
+        if (searcher == null) {
+            return empty();
+        }
         int start = (currentPage - 1) * size + 1;
         //排序
         Sort sot = sorts(sort);

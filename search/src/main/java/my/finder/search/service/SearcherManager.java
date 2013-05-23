@@ -21,7 +21,8 @@ import java.util.Map;
 
 public class SearcherManager {
     private Logger logger = LoggerFactory.getLogger(SearcherManager.class);
-    private Map<String, IndexSearcher> indexSearcherMap = new HashMap<String, IndexSearcher>();
+
+    IndexSearcher ddSearcher = null;
     @Value("#{conf.indexDir}")
     private String indexDir;
     public void init(){
@@ -33,21 +34,25 @@ public class SearcherManager {
             logger.error("{}", e);
             throw new RuntimeException(e);
         }
-        IndexSearcher searcher = new IndexSearcher(reader);
-        indexSearcherMap.put("dd_product",searcher);
+        ddSearcher = new IndexSearcher(reader);
+    }
+    public IndexSearcher getSearcher(String name) {
+        return ddSearcher;
+    }
 
-        /*IndexReader reader1;
+    public void changeSearcher(String name, String id) {
+        IndexReader reader;
+        IndexReader readerIncrement;
         try {
-            Directory dir= FSDirectory.open(new File(indexDir + "/" + "dd_attributes"));
-            reader1 = DirectoryReader.open(dir);
+            Directory dir= FSDirectory.open(new File(indexDir));
+            reader = DirectoryReader.open(dir);
+            readerIncrement = DirectoryReader.open(dir);
+            IndexSearcher searcher = new IndexSearcher(reader);
+            ddSearcher = searcher;
+
         } catch (IOException e) {
             logger.error("{}", e);
             throw new RuntimeException(e);
         }
-        IndexSearcher searcher1 = new IndexSearcher(reader1);
-        indexSearcherMap.put("dd_attributes",searcher1);*/
-    }
-    public IndexSearcher getSearcher(String name) {
-        return indexSearcherMap.get(name);
     }
 }

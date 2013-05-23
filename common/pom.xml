@@ -31,6 +31,16 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-analyzers-common</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+        <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>casbah_2.10</artifactId>
             <type>pom</type>
@@ -63,7 +73,7 @@
     </dependencies>
 
     <build>
-        <sourceDirectory>src/main/scala</sourceDirectory>
+
         <testSourceDirectory>src/test/scala</testSourceDirectory>
         <plugins>
             <plugin>

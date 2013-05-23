@@ -5,6 +5,7 @@ import my.finder.common.message.{CommandParseMessage, PartitionIndexTaskMessage,
 import com.typesafe.config.ConfigFactory
 import java.util.Scanner
 import my.finder.common.util.{Config, Constants}
+import my.finder.console.service.IndexManage
 
 /**
  * @author ${user.name}
@@ -12,6 +13,7 @@ import my.finder.common.util.{Config, Constants}
 object ConsoleApp {
   def main(args : Array[String]) {
     Config.init("console.properties")
+    IndexManage.init
     val system = ActorSystem.create("console", ConfigFactory.load().getConfig("console"))
     val root = system.actorOf(Props[ConsoleRootActor], "root")
 
@@ -22,8 +24,8 @@ object ConsoleApp {
       if (command == "indexDDProduct") {
         root ! CommandParseMessage(Constants.DD_PRODUCT)
       }
-      if (command == "search") {
-        root ! CommandParseMessage("search")
+      if (command == "changeIndex") {
+        root ! CommandParseMessage("changeIndex")
       }
     }
   }

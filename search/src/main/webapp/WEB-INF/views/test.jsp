@@ -18,9 +18,15 @@
     </script>
 </head>
 <body>
-<form id="ff" name="ff" action="search/product/xml">
+<form id="ff" name="ff" method="post" action="search/product/xml">
     <input type="text" id="keyword" name="keyword">
-    <input type="hidden" id="country" name="country" value="ru">
+    <input type="test" id="country" name="country" value="ru">
+    <input type="submit" value="搜索">
+</form>
+<br>
+<form method="post" action="search/product/test/xml">
+    <input type="text" id="search" name="search">
+
     <input type="submit" value="搜索">
 </form>
 </body>

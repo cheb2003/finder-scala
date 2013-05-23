@@ -2,9 +2,8 @@ package my.finder.console.actor
 
 import akka.actor._
 import my.finder.common.message._
-import my.finder.index.actor.IndexDDProductActor
 import akka.remote.RemoteScope
-import akka.routing.FromConfig
+import akka.routing.{RoundRobinRouter, FromConfig}
 import com.mongodb.casbah.Imports._
 import my.finder.common.util.{Config, Util, Constants}
 import java.text.SimpleDateFormat
@@ -37,10 +36,11 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
   val ddProductIndexSize:Int = Integer.valueOf(Config.get("ddProductIndexSize"))
   val productColl = mongoClient(dinobuydb)("ec_productinformation")
   //TODO 改回来 var q:DBObject = ("ec_productprice.unitprice_money" $gt 0) ++ ("ec_product.isstopsale_bit" -> false)
-  var q:DBObject = MongoDBObject.empty
-  val fields = MongoDBObject("productid_int" -> 1)
+  //var q:DBObject = MongoDBObject.empty
+  //val fields = MongoDBObject("productid_int" -> 1)
   //val indexActor = context.system.actorOf(Props[IndexDDProductActor].withRouter(FromConfig()),"node")
   val indexActor = context.actorFor("akka://index@127.0.0.1:2554/user/root")
+  //val unit = context.actorOf(Props[PartitionIndexTaskUnitActor].withRouter(RoundRobinRouter(nrOfInstances = 10)))
   val indexManager = context.actorFor("akka://console@127.0.0.1:2552/user/root/indexManager")
   //val mergeIndex = context.actorOf(Props[MergeIndexActor],"mergeIndex")
 
@@ -60,22 +60,18 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
     }
 
   }
-  private def sendMsg(name:String,runId:String,seq:Int,set:Set[Int],total:Long) {
-    indexActor ! IndexTaskMessage(Constants.DD_PRODUCT, runId,seq,set)
+  private def sendMsg(name:String,runId:String,seq:Long,total:Long) {
+    indexActor ! IndexTaskMessage(Constants.DD_PRODUCT, runId,seq)
     indexManager ! CreateSubTask(name,runId,total)
-
   }
   def partitionDDProduct() = {
-    val sdf:SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss")
+    val sdf: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss")
     val nowStr = sdf.format(new Date())
-    var set:Set[Int] = Set()
-    var i = 0
-    var j = 0
-    val totalCount:Long = productColl.count()
+    val totalCount: Long = productColl.count()
     //TODO
-    val total:Long = totalCount / ddProductIndexSize + 1
+    val total: Long = totalCount / 2000 + 1
 
-    for(x <- productColl.find(q,fields,0,1000)){
+    /*for(x <- productColl.find(q,fields,0,1000)){
 
       set += x.as[Int]("productid_int")
       i += 1
@@ -90,6 +86,9 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
     if (i > 0) {
       j+=1
       sendMsg(Constants.DD_PRODUCT,nowStr,j,set,total)
+    }*/
+    for (x <- 1L to total) {
+      sendMsg(Constants.DD_PRODUCT,nowStr,x,total)
     }
   }
 }
