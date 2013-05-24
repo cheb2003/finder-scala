@@ -24,7 +24,7 @@
 
     <context:component-scan base-package="my.finder.search"/>
     <util:properties id="conf" location="classpath:conf.properties"/>
-    <bean class="my.finder.search.service.SearcherManager" init-method="init"/>
+    <bean id="searcherManager" class="my.finder.search.service.SearcherManager"/>
    <!-- <bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
         <property name="defaultErrorView" value="/exception"/>
     </bean>-->

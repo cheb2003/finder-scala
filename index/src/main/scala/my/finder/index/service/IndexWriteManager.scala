@@ -15,8 +15,11 @@ import my.finder.index.Analyzer.MyAnalyzer
  */
 object IndexWriteManager{
 
+
+
   private var writerMap = Map[String, IndexWriter]()
   val workDir = Config.get("workDir")
+
   def getIndexWriter(name: String, runId: String): IndexWriter = {
     synchronized {
 
@@ -36,7 +39,25 @@ object IndexWriteManager{
       writer
     }
   }
+  def getIncIndexWriter(name: String, runId: String): IndexWriter = {
+    synchronized {
 
+      val prefix = Util.getPrefixPath(workDir,Util.getIncrementalPath(name,runId))
+
+      val key = Util.getIncrementalPath(name, runId)
+      var writer: IndexWriter = writerMap getOrElse (key,null)
+      if (writer == null) {
+        val directory = FSDirectory.open(new File(prefix))
+        val analyzer = new MyAnalyzer();
+        val iwc = new IndexWriterConfig(Version.LUCENE_40, analyzer)
+        iwc.setRAMBufferSizeMB(128)
+        iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND)
+        writer = new IndexWriter(directory,iwc)
+        writerMap += (key -> writer)
+      }
+      writer
+    }
+  }
 
 }
 class IndexWriteManager extends Actor{
@@ -46,6 +67,14 @@ class IndexWriteManager extends Actor{
       writer.forceMerge(1)
       writer.close(true)
       val console = context.actorFor("akka://console@127.0.0.1:2552/user/root")
+      val incPath = Util.getIncrementalPath(msg.name,msg.runId)
+      val workDir = Config.get("workDir")
+      val file = new File(workDir + "/" + incPath)
+      val timeFile = new File(workDir + "/" + incPath + "/time")
+      if(!file.exists()){
+        file.mkdir();
+      }
+      timeFile.createNewFile()
       console ! MergeIndexMessage(msg.name,msg.runId)
     }
   }

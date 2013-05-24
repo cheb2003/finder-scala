@@ -20,6 +20,7 @@ import my.finder.common.message.CompleteSubTask
 import my.finder.common.message.MergeIndexMessage
 import my.finder.common.message.IndexTaskMessage
 import my.finder.common.message.PartitionIndexTaskMessage
+import my.finder.console.service.IndexManage
 
 /**
  *
@@ -52,6 +53,10 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
   }
 
   def receive = {
+    case msg:IndexIncremetionalTaskMessage => {
+      val i = IndexManage.get(Constants.DD_PRODUCT)
+      indexActor ! IndexIncremetionalTaskMessage(i.name,i.using)
+    }
     //分发子任务
     case msg:PartitionIndexTaskMessage => {
       if(msg.name == Constants.DD_PRODUCT){

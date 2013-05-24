@@ -24,6 +24,9 @@ public class ServiceLocator implements ApplicationContextAware {
     public static <T> T getService(Class<T> clazz) {
         return applicationContext.getBean(clazz);
     }
+    public static Object getService(String name) {
+        return applicationContext.getBean(name);
+    }
 
     public static String getProfile() {
         ApplicationContext ac = (ConfigurableApplicationContext) applicationContext;
