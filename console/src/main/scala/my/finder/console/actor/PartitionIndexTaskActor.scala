@@ -26,15 +26,15 @@ import my.finder.console.service.IndexManage
  *
  *
  */
-class PartitionIndexTaskActor extends Actor with ActorLogging{
+class PartitionIndexTaskActor extends Actor with ActorLogging {
   val mongodbIP = Config.get("mongodbIP")
   val mongodbUser = Config.get("mongodbUser")
   val mongodbPassword = Config.get("mongodbPassword")
   val mongodbPort = lang.Integer.valueOf(Config.get("mongodbPort"))
-  val uri = new MongoClientURI("mongodb://"+mongodbUser+":"+mongodbPassword+"@"+mongodbIP+":"+mongodbPort+"/?authMechanism=MONGODB-CR")
-  val mongoClient =  MongoClient(uri)
+  val uri = new MongoClientURI("mongodb://" + mongodbUser + ":" + mongodbPassword + "@" + mongodbIP + ":" + mongodbPort + "/?authMechanism=MONGODB-CR")
+  val mongoClient = MongoClient(uri)
   val dinobuydb = Config.get("dinobuydb")
-  val ddProductIndexSize:Int = Integer.valueOf(Config.get("ddProductIndexSize"))
+  val ddProductIndexSize: Int = Integer.valueOf(Config.get("ddProductIndexSize"))
   val productColl = mongoClient(dinobuydb)("ec_productinformation")
   //TODO 改回来 var q:DBObject = ("ec_productprice.unitprice_money" $gt 0) ++ ("ec_product.isstopsale_bit" -> false)
   //var q:DBObject = MongoDBObject.empty
@@ -46,33 +46,33 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
   //val mergeIndex = context.actorOf(Props[MergeIndexActor],"mergeIndex")
 
 
-
-
   override def preStart() {
     mongoClient.setReadPreference(ReadPreference.SecondaryPreferred)
   }
 
   def receive = {
-    case msg:IndexIncremetionalTaskMessage => {
+    case msg: IndexIncremetionalTaskMessage => {
       val i = IndexManage.get(Constants.DD_PRODUCT)
-      indexActor ! IndexIncremetionalTaskMessage(i.name,i.using)
+      indexActor ! IndexIncremetionalTaskMessage(i.name, i.using)
     }
     //分发子任务
-    case msg:PartitionIndexTaskMessage => {
-      if(msg.name == Constants.DD_PRODUCT){
+    case msg: PartitionIndexTaskMessage => {
+      if (msg.name == Constants.DD_PRODUCT) {
         partitionDDProduct()
       }
     }
 
   }
-  private def sendMsg(name:String,runId:String,seq:Long,total:Long) {
-    indexActor ! IndexTaskMessage(Constants.DD_PRODUCT, runId,seq)
-    indexManager ! CreateSubTask(name,runId,total)
+
+  private def sendMsg(name: String, runId: String, seq: Long, total: Long) {
+    indexActor ! IndexTaskMessage(Constants.DD_PRODUCT, runId, seq)
+    indexManager ! CreateSubTask(name, runId, total)
   }
+
   def partitionDDProduct() = {
     val sdf: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss")
     val nowStr = sdf.format(new Date())
-    val totalCount: Long = productColl.count()
+    val totalCount: Long = 100024L//productColl.count()
     //TODO
     val total: Long = totalCount / 2000 + 1
 
@@ -93,7 +93,7 @@ class PartitionIndexTaskActor extends Actor with ActorLogging{
       sendMsg(Constants.DD_PRODUCT,nowStr,j,set,total)
     }*/
     for (x <- 1L to total) {
-      sendMsg(Constants.DD_PRODUCT,nowStr,x,total)
+      sendMsg(Constants.DD_PRODUCT, nowStr, x, total)
     }
   }
 }

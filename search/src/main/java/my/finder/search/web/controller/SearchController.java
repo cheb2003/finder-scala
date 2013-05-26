@@ -210,15 +210,17 @@ public class SearchController {
         try {
             //TopFieldCollector tsdc = TopFieldCollector.create(sot, start + size, false, false, false, false);
             //Query q = parser.parse(search);
-            Term t = new Term("sku", search);
-            TermQuery tq = new TermQuery(t);
-            logger.info("{}",tq);
-            TopDocs topDocs1 = searcher.search(tq, 100);
+            /*Term t = new Term("sku", search);
+            TermQuery tq = new TermQuery(t);*/
+            Query q = parser.parse(search);
+            logger.info("{}", q);
+            TopDocs topDocs1 = searcher.search(q, Integer.MAX_VALUE);
             result.put("totalHits", topDocs1.totalHits);
 
+            logger.info("-----------------{}",topDocs1.totalHits) ;
             //从0开始计算
             //TopDocs topDocs = topDocs1.topDocs(start - 1, size);
-            ScoreDoc[] scoreDocs = topDocs1.scoreDocs;
+            /*ScoreDoc[] scoreDocs = topDocs1.scoreDocs;
             List<Long> ids = new ArrayList<Long>();
             Document doc = DocumentHelper.parseText("<root/>");
             Element docs = doc.getRootElement().addElement("docs");
@@ -226,22 +228,23 @@ public class SearchController {
                 org.apache.lucene.document.Document indexDoc = searcher.getIndexReader().document(scoreDocs[i].doc);
                 ids.add(Long.valueOf(indexDoc.get("pId")));
                 if ("xml".equals(format)) {
-                    docToXML(docs,indexDoc);
+                    docToXML(docs, indexDoc);
                 }
             }
 
-            result.put("productIds", ids);
-            if("xml".equals(format)) {
+            result.put("productIds", ids);*/
+            /*if ("xml".equals(format)) {
                 return doc.asXML();
             }
-            if("json".equals(format)) {
+            if ("json".equals(format)) {
                 return objectMapper.writeValueAsString(result);
-            }
+            }*/
         } catch (Exception e) {
             logger.error("{}",e);
         }
         return empty();
     }
+
 
 
     private String search(HttpServletRequest request,String format) {

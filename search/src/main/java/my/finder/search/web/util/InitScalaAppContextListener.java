@@ -12,7 +12,7 @@ import javax.servlet.ServletContextListener;
 public class InitScalaAppContextListener implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent sce) {
-        //SearchActorWrapper.init();
+        SearchActorWrapper.init();
     }
 
     @Override

@@ -1,11 +1,7 @@
 package my.finder.console.service
 
-import java.util.{Collections, Date}
 import my.finder.common.util.{Constants, Config}
 import java.io.File
-import org.apache.commons.io.FileUtils
-import org.apache.commons.io.filefilter.PrefixFileFilter
-import java.util
 import scala.collection.mutable.ListBuffer
 
 /**

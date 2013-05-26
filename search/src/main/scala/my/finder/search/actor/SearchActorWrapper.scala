@@ -10,7 +10,7 @@ import com.typesafe.config.ConfigFactory
 object SearchActorWrapper {
   val system = ActorSystem.create("search",ConfigFactory.parseResources(this.getClass.getClassLoader,"application.conf").getConfig("search"))
   def init() = {
-    system.actorOf(Props[SearchRemoteActor], "root")
+    system.actorOf(Props[SearchRootActor], "root")
   }
   def destroy() = {
     system.shutdown()

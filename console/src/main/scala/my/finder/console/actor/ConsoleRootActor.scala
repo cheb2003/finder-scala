@@ -20,7 +20,7 @@ class ConsoleRootActor extends Actor {
   val partitionActor = context.actorOf(Props[PartitionIndexTaskActor], "partitiontor")
   val indexManagerActor = context.actorOf(Props[IndexManagerActor], "indexManager")
   val mergeIndex = context.actorOf(Props[MergeIndexActor], "mergeIndex")
-
+  val search = context.actorFor("akka://search@127.0.0.1:2555/user/root")
 
   def receive = {
     case msg:IndexIncremetionalTaskMessage=> {
@@ -30,7 +30,7 @@ class ConsoleRootActor extends Actor {
 
     }
     case msg: CompleteIncIndexTask => {
-      val search = context.actorFor("akka://search@127.0.0.1:2555/user/root")
+
       search ! IncIndexeMessage(msg.name, msg.runId)
     }
     case msg: CompleteSubTask => {
@@ -41,7 +41,6 @@ class ConsoleRootActor extends Actor {
         partitionActor ! PartitionIndexTaskMessage(Constants.DD_PRODUCT)
       }
       if (msg.command == "changeIndex") {
-        val search = context.actorFor("akka://search@127.0.0.1:2555/user/root")
         val i: Index = IndexManage.get(Constants.DD_PRODUCT)
         search ! ChangeIndexMessage(i.name, i.using)
       }
@@ -49,10 +48,6 @@ class ConsoleRootActor extends Actor {
     case msg: MergeIndexMessage => {
 
     }
-  }
-
-  def indexDdProductInc = {
-
   }
 }
 

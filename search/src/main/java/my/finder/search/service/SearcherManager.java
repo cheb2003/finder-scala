@@ -3,6 +3,7 @@ package my.finder.search.service;
 import my.finder.common.util.Util;
 import my.finder.search.web.util.Index;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.search.IndexSearcher;
@@ -48,12 +49,23 @@ public class SearcherManager {
         try {
             if (ddIndex.getId().equals(id)) {
                 DirectoryReader oldReader = ddIndex.getInc();
-                DirectoryReader newReader = DirectoryReader.openIfChanged(oldReader);
-                ddIndex.setInc(newReader);
-                MultiReader multiReader = new MultiReader(ddIndex.getMajor(),ddIndex.getInc());
-                IndexSearcher newSearcher = new IndexSearcher(multiReader);
-                ddIndex.setSearcher(newSearcher);
-                oldReader.close();
+                if (oldReader == null) {
+                    Directory dirInc = FSDirectory.open(new File(wordDir + Util.getIncrementalPath(name, id)));
+                    try{
+                        oldReader = DirectoryReader.open(dirInc);
+                    } catch (IndexNotFoundException e){
+
+                    }
+                    ddIndex.setInc(oldReader);
+                } else {
+                    DirectoryReader newReader = DirectoryReader.openIfChanged(oldReader);
+                    ddIndex.setInc(newReader);
+                    MultiReader multiReader = new MultiReader(ddIndex.getMajor(),ddIndex.getInc());
+                    IndexSearcher newSearcher = new IndexSearcher(multiReader);
+                    ddIndex.setSearcher(newSearcher);
+                    oldReader.close();
+                }
+
             }
         } catch (IOException e) {
             logger.error("{}",e);
@@ -62,12 +74,17 @@ public class SearcherManager {
 
     public void changeSearcher(String name, String id) {
         DirectoryReader reader;
-        DirectoryReader readerIncrement;
+        DirectoryReader readerIncrement = null;
         try {
             Directory dir = FSDirectory.open(new File(wordDir + Util.getKey(name, id)));
             Directory dirInc = FSDirectory.open(new File(wordDir + Util.getIncrementalPath(name, id)));
             reader = DirectoryReader.open(dir);
-            readerIncrement = DirectoryReader.open(dirInc);
+            try{
+                readerIncrement = DirectoryReader.open(dirInc);
+            } catch (IndexNotFoundException e){
+
+            }
+
             List<IndexReader> lst = new ArrayList<IndexReader>();
             if (reader != null) {
                 lst.add(reader);
@@ -83,12 +100,12 @@ public class SearcherManager {
                 ddIndex.setName(name);
                 if (ddIndex.getMajor() != null) {
                     ddIndex.getMajor().close();
-                    ddIndex.setMajor(reader);
                 }
+                ddIndex.setMajor(reader);
                 if (ddIndex.getInc() != null) {
                     ddIndex.getInc().close();
-                    ddIndex.setInc(readerIncrement);
                 }
+                ddIndex.setInc(readerIncrement);
             }
         } catch (IOException e) {
             logger.error("{}", e);

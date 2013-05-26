@@ -9,7 +9,7 @@ import my.finder.search.service.{ServiceLocator, SearcherManager}
 /**
  *
  */
-abstract class SearchRemoteActor extends Actor{
+class SearchRootActor extends Actor{
 
   def receive = {
     case msg:ChangeIndexMessage => {
