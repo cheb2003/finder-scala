@@ -6,7 +6,7 @@
 	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
 		<encoding>UTF-8</encoding>
 		<layout class="ch.qos.logback.classic.PatternLayout">
-			<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+			<pattern>%date{ISO8601} %-5level %logger{36} %X{sourceThread} %X{akkaSource} - %msg%n</pattern>
 		</layout>
 	</appender>
 	<appender name="rootFile" class="ch.qos.logback.core.FileAppender">

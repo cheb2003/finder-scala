@@ -17,7 +17,7 @@ class MergeIndexActor extends Actor with ActorLogging{
   val workDir = Config.get("workDir")
   def receive = {
     case msg:MergeIndexMessage => {
-      val key = Util.getKey(msg.name,msg.runId)
+      val key = Util.getKey(msg.name,msg.date)
       log.info("合并索引，{}",key);
       val prefix = Util.getPrefixPath(workDir,key)
 

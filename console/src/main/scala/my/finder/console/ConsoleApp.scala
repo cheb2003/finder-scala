@@ -36,7 +36,7 @@ object ConsoleApp {
       if (command == "inc") {
 
         system.scheduler.schedule(0 seconds,10 seconds){
-          root ! IndexIncremetionalTaskMessage("","")
+          root ! IndexIncremetionalTaskMessage("",null)
         }
       }
     }

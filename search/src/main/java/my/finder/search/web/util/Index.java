@@ -4,12 +4,15 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 
+import java.util.Date;
+
 /**
  *
  */
 public class Index {
     private String name;
-    private String id;
+    private DirectoryReader inc;
+    private Date date;
     private DirectoryReader major;
 
     public IndexSearcher getSearcher() {
@@ -30,13 +33,7 @@ public class Index {
         this.name = name;
     }
 
-    public String getId() {
-        return id;
-    }
 
-    public void setId(String id) {
-        this.id = id;
-    }
 
     public IndexReader getMajor() {
         return major;
@@ -54,6 +51,13 @@ public class Index {
         this.inc = inc;
     }
 
-    private DirectoryReader inc;
 
+
+    public Date getDate() {
+        return date;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
+    }
 }

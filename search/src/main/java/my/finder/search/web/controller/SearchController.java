@@ -165,7 +165,7 @@ public class SearchController {
         return empty();
     }
 
-    @RequestMapping(value = "/product/test/xml",method = RequestMethod.POST, produces = "text/xml;charset=utf-8")
+    @RequestMapping(value = "/product/test/xml",method = RequestMethod.POST, produces = "text/plain;charset=utf-8")
     @ResponseBody
     private String testProduct(HttpServletRequest request, String format) {
         format = "xml";
@@ -218,6 +218,7 @@ public class SearchController {
             result.put("totalHits", topDocs1.totalHits);
 
             logger.info("-----------------{}",topDocs1.totalHits) ;
+            return String.valueOf(topDocs1.totalHits);
             //从0开始计算
             //TopDocs topDocs = topDocs1.topDocs(start - 1, size);
             /*ScoreDoc[] scoreDocs = topDocs1.scoreDocs;

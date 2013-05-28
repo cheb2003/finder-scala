@@ -9,7 +9,7 @@ import my.finder.index.service.IndexWriteManager
  *
  */
 class IndexRootActor extends Actor{
-  val units = context.actorOf(Props[IndexUnitActor].withRouter(RoundRobinRouter(nrOfInstances = 24)),"indexUint")
+  val units = context.actorOf(Props[IndexUnitActor].withDispatcher("my-pinned-dispatcher").withRouter(RoundRobinRouter(nrOfInstances = 32)),"indexUint")
   val indexWriterManager = context.actorOf(Props[IndexWriteManager],"indexWriterManager")
   def receive = {
     case msg:IndexTaskMessage => {

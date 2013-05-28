@@ -5,6 +5,7 @@ import com.mongodb.util.JSON
 import scala.io.Source
 import my.finder.common.util.Config
 import java.util.Date
+import java.text.SimpleDateFormat
 
 /**
  *
@@ -26,13 +27,17 @@ object TestMongo {
     val b = MongoDBList.newBuilder
     b+=MongoDBObject("language_nvarchar" -> "ru","producttitle_nvarchar" -> "fdf3")
     b+=MongoDBObject("language_nvarchar" -> "br","producttitle_nvarchar" -> "brf3")
-    for(x <- productColl.find(q)){
+    /*for(x <- productColl.find(q)){
       //x.as[DBObject]("ec_product").as[String]("productaliasname_nvarchar")
       //productColl.update[DBObject,DBObject](MongoDBObject("_id" -> x._id),$set ("ec_productlanguage" -> b.result))
       productColl.update[DBObject,DBObject](MongoDBObject("_id" -> x._id),$set ("ec_product.createtime_datetime" -> new Date()))
     }
 
-    println(productColl.findOne())
+    println(productColl.findOne())*/
+    val sdf: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss")
+    val from = sdf.parse("2013-05-26-23-00-00")
+    val to = sdf.parse("2013-06-01-00-00-00")
+    println(productColl.count("ec_product.createtime_datetime" $gt from $lt to ))
     //val sort = MongoDBObject("productid_int" -> -1)
     //,"ec_product.producttypeid_int" -> 1
     /*for(x <- Source.fromFile("f:/product.json").getLines()){
@@ -62,5 +67,9 @@ object TestMongo {
     }*/
 
     //productColl.insert()
+    /*val sdf: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss")
+    val now = new Date()
+    println(sdf.parse(sdf.format(now)))*/
+
   }
 }

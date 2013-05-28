@@ -40,7 +40,7 @@
         </layout>
     </appender>-->
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>console.log</file>
+        <file>search.log</file>
         <append>false</append>
         <encoder>
             <pattern>%-4relative [%thread] %-5level %logger{35} - %msg%n</pattern>

@@ -1,18 +1,22 @@
 package my.finder.common.message
-case class IndexTaskMessage(name:String,runId:String,seq:Long);
-case class IndexIncremetionalTaskMessage(name:String,runId:String);
+
+import java.util.Date
+import scala.collection.mutable.ListBuffer
+
+case class IndexTaskMessage(name:String,date:Date,seq:Long,ids:ListBuffer[Int]);
+case class IndexIncremetionalTaskMessage(name:String,date:Date);
 case class PartitionIndexTaskMessage(name:String)
 case class CommandParseMessage(command:String)
-case class CompleteSubTask(name:String,runId:String,seq:Long,successCount:Int,failCount:Int,skipCount:Int)
-case class CreateSubTask(name:String,runId:String,total:Long)
-case class ManageSubTask(name:String,runId:String)
-case class CompleteIndexTask(name:String,runId:String)
-case class CompleteIncIndexTask(name:String,runId:String)
-case class CloseWriter(name:String,runId:String)
-case class MergeIndexMessage(name:String,runId:String)
-case class ChangeIndexMessage(name:String,id:String)
-case class CloseIndexWriterMessage(name:String,runId:String)
+case class CompleteSubTask(name:String,date:Date,seq:Long,successCount:Int,failCount:Int,skipCount:Int)
+case class CreateSubTask(name:String,date:Date,total:Long)
+case class ManageSubTask(name:String,date:Date)
+case class CompleteIndexTask(name:String,date:Date)
+case class CompleteIncIndexTask(name:String,date:Date,successCount:Int,failCount:Int,skipCount:Int)
+case class CloseWriter(name:String,date:Date)
+case class MergeIndexMessage(name:String,date:Date)
+case class ChangeIndexMessage(name:String,date:Date)
+case class CloseIndexWriterMessage(name:String,date:Date)
 case class GetIndexesPathMessage()
-case class IncIndexeMessage(name:String,id:String)
+case class IncIndexeMessage(name:String,date:Date)
 case class GetIndexesPathMessageReponse(msg:List[String])
 

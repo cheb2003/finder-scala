@@ -1,18 +1,19 @@
 package my.finder.console.service
 
-import my.finder.common.util.{Constants, Config}
+import my.finder.common.util.{Util, Constants, Config}
 import java.io.File
 import scala.collection.mutable.ListBuffer
+import java.util.Date
 
 /**
  *
  */
-case class Index(name:String,ids:ListBuffer[String],var using:String)
+case class Index(name:String,ids:ListBuffer[String],var using:Date)
 
 object IndexManage {
 
   var indexManage = ListBuffer[Index]()
-  val ddIndex:Index = Index(Constants.DD_PRODUCT,ListBuffer[String](),"")
+  val ddIndex:Index = Index(Constants.DD_PRODUCT,ListBuffer[String](),null)
   def add(index:Index) = {
     indexManage += index
   }
@@ -34,13 +35,13 @@ object IndexManage {
     //val files: util.Collection[File] = FileUtils.listFilesAndDirs(file,null,new PrefixFileFilter(Constants.DD_PRODUCT))
     var max:String = ""
     val files = new File(dir).listFiles()
-    for(f:File <- files if f.isDirectory && !f.getName.endsWith("inc")) {
+    for(f:File <- files if f != null && f.isDirectory && !f.getName.endsWith("inc") && f.getName.contains(Constants.DD_PRODUCT)) {
       //val s = f.getName().split("_")(0)
       val i:Index = findIndex(Constants.DD_PRODUCT)
       i.ids += f.getName
       if (max < f.getName) {
         max = f.getName
-        i.using = max.split("_")(1)
+        i.using = Util.stringParseToDate(max.split("_")(1))
       }
     }
     println(ddIndex)

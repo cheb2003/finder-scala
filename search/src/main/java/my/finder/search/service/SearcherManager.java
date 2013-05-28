@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 
@@ -45,12 +46,14 @@ public class SearcherManager {
         return ddIndex.getSearcher();
     }
 
-    public void updateIncrementalIndex(String name, String id) {
+    public void updateIncrementalIndex(String name, Date date) {
+        logger.info("receive index incremental {},{}",name,date);
         try {
-            if (ddIndex.getId().equals(id)) {
+            if (ddIndex.getDate().equals(date)) {
+                logger.info("update index incremental {},{}",name,date);
                 DirectoryReader oldReader = ddIndex.getInc();
                 if (oldReader == null) {
-                    Directory dirInc = FSDirectory.open(new File(wordDir + Util.getIncrementalPath(name, id)));
+                    Directory dirInc = FSDirectory.open(new File(wordDir + Util.getIncrementalPath(name, date)));
                     try{
                         oldReader = DirectoryReader.open(dirInc);
                     } catch (IndexNotFoundException e){
@@ -72,12 +75,13 @@ public class SearcherManager {
         }
     }
 
-    public void changeSearcher(String name, String id) {
+    public void changeSearcher(String name, Date date) {
+        logger.info("change index {},{}",name,date);
         DirectoryReader reader;
         DirectoryReader readerIncrement = null;
         try {
-            Directory dir = FSDirectory.open(new File(wordDir + Util.getKey(name, id)));
-            Directory dirInc = FSDirectory.open(new File(wordDir + Util.getIncrementalPath(name, id)));
+            Directory dir = FSDirectory.open(new File(wordDir + Util.getKey(name, date)));
+            Directory dirInc = FSDirectory.open(new File(wordDir + Util.getIncrementalPath(name, date)));
             reader = DirectoryReader.open(dir);
             try{
                 readerIncrement = DirectoryReader.open(dirInc);
@@ -96,7 +100,7 @@ public class SearcherManager {
                 MultiReader multiReader = new MultiReader(lst.toArray(new IndexReader[]{}));
                 IndexSearcher searcher = new IndexSearcher(multiReader);
                 ddIndex.setSearcher(searcher);
-                ddIndex.setId(id);
+                ddIndex.setDate(date);
                 ddIndex.setName(name);
                 if (ddIndex.getMajor() != null) {
                     ddIndex.getMajor().close();

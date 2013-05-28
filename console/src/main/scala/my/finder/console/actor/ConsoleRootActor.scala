@@ -23,19 +23,17 @@ class ConsoleRootActor extends Actor {
   val search = context.actorFor("akka://search@127.0.0.1:2555/user/root")
 
   def receive = {
-    case msg:IndexIncremetionalTaskMessage=> {
-      partitionActor ! msg
-    }
+    case msg:IndexIncremetionalTaskMessage => partitionActor ! msg
+
+
     case msg: GetIndexesPathMessage => {
 
     }
     case msg: CompleteIncIndexTask => {
+      if(msg.successCount > 0) search ! IncIndexeMessage(msg.name, msg.date)
+    }
+    case msg: CompleteSubTask => indexManagerActor ! msg
 
-      search ! IncIndexeMessage(msg.name, msg.runId)
-    }
-    case msg: CompleteSubTask => {
-      indexManagerActor ! msg
-    }
     case msg: CommandParseMessage => {
       if (msg.command == Constants.DD_PRODUCT) {
         partitionActor ! PartitionIndexTaskMessage(Constants.DD_PRODUCT)

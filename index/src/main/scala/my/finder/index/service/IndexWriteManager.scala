@@ -9,6 +9,7 @@ import my.finder.common.util.{Config, Util}
 import akka.actor.Actor
 import my.finder.common.message.{MergeIndexMessage, CloseIndexWriterMessage}
 import my.finder.index.Analyzer.MyAnalyzer
+import java.util.Date
 
 /**
  *
@@ -20,12 +21,12 @@ object IndexWriteManager{
   private var writerMap = Map[String, IndexWriter]()
   val workDir = Config.get("workDir")
 
-  def getIndexWriter(name: String, runId: String): IndexWriter = {
+  def getIndexWriter(name: String, date: Date): IndexWriter = {
     synchronized {
 
-      val prefix = Util.getPrefixPath(workDir,Util.getKey(name,runId))
+      val prefix = Util.getPrefixPath(workDir,Util.getKey(name,date))
 
-      val key = Util.getKey(name, runId)
+      val key = Util.getKey(name, date)
       var writer: IndexWriter = writerMap getOrElse (key,null)
       if (writer == null) {
         val directory = FSDirectory.open(new File(prefix))
@@ -39,12 +40,12 @@ object IndexWriteManager{
       writer
     }
   }
-  def getIncIndexWriter(name: String, runId: String): IndexWriter = {
+  def getIncIndexWriter(name: String, date: Date): IndexWriter = {
     synchronized {
 
-      val prefix = Util.getPrefixPath(workDir,Util.getIncrementalPath(name,runId))
+      val prefix = Util.getPrefixPath(workDir,Util.getIncrementalPath(name,date))
 
-      val key = Util.getIncrementalPath(name, runId)
+      val key = Util.getIncrementalPath(name, date)
       var writer: IndexWriter = writerMap getOrElse (key,null)
       if (writer == null) {
         val directory = FSDirectory.open(new File(prefix))
@@ -63,11 +64,11 @@ object IndexWriteManager{
 class IndexWriteManager extends Actor{
   def receive = {
     case msg:CloseIndexWriterMessage => {
-      val writer = IndexWriteManager.getIndexWriter(msg.name,msg.runId)
+      val writer = IndexWriteManager.getIndexWriter(msg.name,msg.date)
       writer.forceMerge(1)
       writer.close(true)
       val console = context.actorFor("akka://console@127.0.0.1:2552/user/root")
-      val incPath = Util.getIncrementalPath(msg.name,msg.runId)
+      val incPath = Util.getIncrementalPath(msg.name,msg.date)
       val workDir = Config.get("workDir")
       val file = new File(workDir + "/" + incPath)
       val timeFile = new File(workDir + "/" + incPath + "/time")
@@ -75,7 +76,8 @@ class IndexWriteManager extends Actor{
         file.mkdir();
       }
       timeFile.createNewFile()
-      console ! MergeIndexMessage(msg.name,msg.runId)
+      timeFile.setLastModified(msg.date.getTime)
+      console ! MergeIndexMessage(msg.name,msg.date)
     }
   }
 }

@@ -4,6 +4,7 @@ import akka.actor.{Props, ActorSystem}
 import com.typesafe.config.ConfigFactory
 import my.finder.index.actor.{IndexRootActor}
 import my.finder.common.util.Config
+import akka.routing.RoundRobinRouter
 
 /**
  * @author ${user.name}

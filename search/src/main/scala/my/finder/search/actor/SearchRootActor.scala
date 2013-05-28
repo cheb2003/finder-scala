@@ -14,11 +14,11 @@ class SearchRootActor extends Actor{
   def receive = {
     case msg:ChangeIndexMessage => {
       val sm = ServiceLocator.getService("searcherManager").asInstanceOf[SearcherManager];
-      sm.changeSearcher(msg.name,msg.id)
+      sm.changeSearcher(msg.name,msg.date)
     }
     case msg:IncIndexeMessage => {
       val sm = ServiceLocator.getService("searcherManager").asInstanceOf[SearcherManager];
-      sm.updateIncrementalIndex(msg.name,msg.id)
+      sm.updateIncrementalIndex(msg.name,msg.date)
     }
     /*case GetIndexesPathMessage => {
       val consoleRoot = context.actorFor("akka://console@127.0.0.1:2552/user/root")
