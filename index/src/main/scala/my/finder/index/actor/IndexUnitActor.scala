@@ -6,7 +6,7 @@ import my.finder.index.service.MongoManager.mongoClient
 import com.mongodb.casbah.Imports._
 import org.apache.lucene.document._
 
-import my.finder.index.service.IndexWriteManager
+import my.finder.index.service.{MongoManager, IndexWriteManager}
 import my.finder.common.message.{CompleteIncIndexTask, IndexIncremetionalTaskMessage, CompleteSubTask, IndexTaskMessage}
 import org.apache.commons.lang.StringUtils
 import java.util.Date
@@ -21,7 +21,7 @@ class IndexUnitActor extends Actor with ActorLogging with MongoUtil {
   val dinobuydb = Config.get("dinobuydb")
 
 
-  val productColl = mongoClient(dinobuydb)("ec_productinformation")
+  var productColl:MongoCollection = null
 
 
   val fields = MongoDBObject("productid_int" -> 1, "ec_product.productaliasname_nvarchar" -> 1
@@ -49,7 +49,8 @@ class IndexUnitActor extends Actor with ActorLogging with MongoUtil {
   private var doc: Document = null
 
   override def preStart() {
-    mongoClient.setReadPreference(ReadPreference.SecondaryPreferred)
+    val mongo = MongoManager()
+    productColl = mongo(dinobuydb)("ec_productinformation")
   }
   def writeDoc(x: DBObject, writer: IndexWriter):Boolean = {
     var list: MongoDBList = null
@@ -162,7 +163,7 @@ class IndexUnitActor extends Actor with ActorLogging with MongoUtil {
       consoleRoot ! CompleteIncIndexTask(msg.name, msg.date,successCount,failCount,skipCount)
     }
     case msg: IndexTaskMessage => {
-      log.info("recevie indextaskmessage {}",msg.date)
+      //log.info("recevie indextaskmessage {}",msg.date)
       val time1 = System.currentTimeMillis()
       val writer = IndexWriteManager.getIndexWriter(msg.name, msg.date)
       //val now:Date = msg.date
@@ -195,7 +196,7 @@ class IndexUnitActor extends Actor with ActorLogging with MongoUtil {
       val indexManager = context.actorFor("akka://console@127.0.0.1:2552/user/root")
       indexManager ! CompleteSubTask(msg.name, msg.date, msg.seq, successCount, failCount, skipCount)
       val time2 = System.currentTimeMillis()
-
+      items.close()
       val arr = new Array[Int](5)
       arr(0) = Integer.valueOf((time2 - time1).toString)
       arr(1) = successCount

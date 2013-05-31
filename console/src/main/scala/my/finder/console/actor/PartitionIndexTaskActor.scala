@@ -3,7 +3,7 @@ package my.finder.console.actor
 import akka.actor._
 import my.finder.common.message._
 
-import akka.routing.{RoundRobinRouter, FromConfig}
+
 import com.mongodb.casbah.Imports._
 import my.finder.common.util.{Config, Util, Constants}
 
@@ -11,27 +11,26 @@ import java.util.Date
 
 import java.lang
 
-import my.finder.common.message.IndexTaskMessage
-import my.finder.common.message.PartitionIndexTaskMessage
-import my.finder.console.service.IndexManage
+
+import my.finder.console.service.{MongoManager, IndexManage}
 import scala.collection.mutable.ListBuffer
+
+import my.finder.common.message.IndexIncremetionalTaskMessage
+import my.finder.common.message.IndexTaskMessage
+import my.finder.common.message.CreateSubTask
+import my.finder.common.message.PartitionIndexTaskMessage
+import akka.routing.RoundRobinRouter
 
 /**
  *
  *
  */
 class PartitionIndexTaskActor extends Actor with ActorLogging {
-  val mongodbIP = Config.get("mongodbIP")
-  val mongodbUser = Config.get("mongodbUser")
-  val mongodbPassword = Config.get("mongodbPassword")
-  val mongodbPort = lang.Integer.valueOf(Config.get("mongodbPort"))
-  val uri = new MongoClientURI("mongodb://" + mongodbUser + ":" + mongodbPassword + "@" + mongodbIP + ":" + mongodbPort + "/?authMechanism=MONGODB-CR")
-  val mongoClient = MongoClient(uri)
+  var mongoClient:MongoClient = MongoManager()
   val dinobuydb = Config.get("dinobuydb")
   val ddProductIndexSize: Int = Integer.valueOf(Config.get("ddProductIndexSize"))
-  val productColl = mongoClient(dinobuydb)("ec_productinformation")
+  var productColl:MongoCollection = null
   //TODO 改回来 var q:DBObject = ("ec_productprice.unitprice_money" $gt 0) ++ ("ec_product.isstopsale_bit" -> false)
-  var q:DBObject = MongoDBObject.empty
   val fields = MongoDBObject("productid_int" -> 1)
   //val indexActor = context.system.actorOf(Props[IndexDDProductActor].withRouter(FromConfig()),"node")
   val indexRootActor = context.actorFor("akka://index@127.0.0.1:2554/user/root")
@@ -41,7 +40,8 @@ class PartitionIndexTaskActor extends Actor with ActorLogging {
 
 
   override def preStart() {
-    mongoClient.setReadPreference(ReadPreference.SecondaryPreferred)
+    mongoClient = MongoManager()
+    productColl = mongoClient(dinobuydb)("ec_productinformation")
   }
 
   def receive = {
@@ -56,9 +56,7 @@ class PartitionIndexTaskActor extends Actor with ActorLogging {
       }
     }
   }
-  var ii = 0
   private def sendMsg(name: String, runId: Date, seq: Long,ids:ListBuffer[Int], total: Long) {
-    ii += 1
     indexRootActor ! IndexTaskMessage(Constants.DD_PRODUCT, runId, seq,ids)
     indexRootManager ! CreateSubTask(name, runId, total)
   }
@@ -67,44 +65,35 @@ class PartitionIndexTaskActor extends Actor with ActorLogging {
 
     val now = new Date()
 
-    //val totalCount: Long = 100024L
     log.info("create index {}",now)
 
-    //val totalCount: Long = productColl.count("ec_product.createtime_datetime" $lt now)
-    val totalCount: Long = productColl.count()
 
-    //log.info("spent {} millisecond in querying total items {}",time2 - time1,totalCount)
-    //TODO
-    val total: Long = totalCount / ddProductIndexSize + 1
-    /*for (x <- 0L until total) {
-      sendMsg(Constants.DD_PRODUCT, now, x, total)
-    }*/
+
+    val set:ListBuffer[Int] = new ListBuffer[Int]
     var i = 0
     var j = 0
-    val set:ListBuffer[Int] = new ListBuffer[Int]
-    var time1 = System.currentTimeMillis();
-    var time2 = System.currentTimeMillis();
-    val items = productColl.m
-    for(x <- items){
+    val minItem = productColl.find().sort(MongoDBObject("productid_int" -> 1)).limit(1)
+    val maxItem = productColl.find().sort(MongoDBObject("productid_int" -> -1)).limit(1)
+    val minId = minItem.next().as[Int]("productid_int")
+    val maxId = maxItem.next().as[Int]("productid_int")
+    val totalCount: Long = maxId - minId + 1
 
-      set += x.as[Int]("productid_int")
+    val total: Long = totalCount / ddProductIndexSize + 1
+    log.info("minId=========={}",minId)
+    log.info("maxId=========={}",maxId)
+    for (y <- minId to maxId) {
+      set += y
       i += 1
-      if(i >= ddProductIndexSize){
+      if (i == ddProductIndexSize) {
         i = 0
-        j+=1
-        sendMsg(Constants.DD_PRODUCT,now,j,set,total)
-        time2 = System.currentTimeMillis()
-        log.info("spent in reading ids {}",time2 - time1)
-        time1 = time2
-        set.remove(0,set.length)
-        //log.info("set length {}",set.length)
+        j += 1
+        sendMsg(Constants.DD_PRODUCT, now, j, set, total)
+        set.remove(0, set.length)
       }
     }
-
     if (i > 0) {
-      j+=1
-      sendMsg(Constants.DD_PRODUCT,now,j,set,total)
+      j += 1
+      sendMsg(Constants.DD_PRODUCT, now, j, set, total)
     }
-    println("------------------------" + ii)
   }
 }
