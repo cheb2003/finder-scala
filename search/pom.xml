@@ -17,7 +17,6 @@
         <scala.tools.version>2.10</scala.tools.version>
         <scala.version>2.10.1</scala.version>
     </properties>
-
     <artifactId>search</artifactId>
     <dependencies>
         <dependency>
@@ -37,6 +36,10 @@
         <dependency>
             <groupId>my.finder</groupId>
             <artifactId>common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>my.finder</groupId>
+            <artifactId>javahelper</artifactId>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>

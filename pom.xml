@@ -14,9 +14,15 @@
         <module>common</module>
         <module>index</module>
         <module>search</module>
+        <module>javahelper</module>
     </modules>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>my.finder</groupId>
+                <artifactId>javahelper</artifactId>
+                <version>1.0</version>
+            </dependency>
             <dependency>
                 <groupId>commons-lang</groupId>
                 <artifactId>commons-lang</artifactId>

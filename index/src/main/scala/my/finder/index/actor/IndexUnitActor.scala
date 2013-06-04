@@ -126,6 +126,7 @@ class IndexUnitActor extends Actor with ActorLogging with MongoUtil {
   }
   def receive = {
     case msg:IndexIncremetionalTaskMessage => {
+      log.info("receive incrementional index message")
       val time1 = System.currentTimeMillis();
 
       val incPath = Util.getIncrementalPath(msg.name,msg.date)
@@ -139,6 +140,7 @@ class IndexUnitActor extends Actor with ActorLogging with MongoUtil {
       val writer = IndexWriteManager.getIncIndexWriter(msg.name, msg.date)
 
       val items: MongoCursor = productColl.find(q, fields)
+      log.info("index inc item {}",items.size)
       for (x <- items) {
 
         try{
@@ -170,10 +172,10 @@ class IndexUnitActor extends Actor with ActorLogging with MongoUtil {
       var successCount:Int = 0
       var failCount:Int = 0
       var skipCount:Int = 0
-      //var time3 = System.currentTimeMillis()
+      var time3 = System.currentTimeMillis()
       //val items: MongoCursor = productColl.find("ec_product.createtime_datetime" $lt now, fields).skip(Integer.valueOf((msg.seq * 2).toString())).limit(2000)
       val items: MongoCursor = productColl.find("productid_int" $in msg.ids, fields)
-      //var time4 = System.currentTimeMillis()
+      var time4 = System.currentTimeMillis()
       var b = false
 
       //log.info("find items {}",time4 - time3)
@@ -181,14 +183,14 @@ class IndexUnitActor extends Actor with ActorLogging with MongoUtil {
 
       //log.info("spent {} millisecond in finding items {}",time2 - time1,items.size)
       for (x <- items) {
-        //if(!b) b = true else log.info("load item {}",time3 -time4)
-        //time3 = System.currentTimeMillis()
+        if(!b) b = true else log.info("load item {}",time3 -time4)
+        time3 = System.currentTimeMillis()
         try{
           if(writeDoc(x, writer)) successCount += 1 else skipCount += 1
         } catch {
           case e:Exception => failCount += 1
         }
-        //time4 = System.currentTimeMillis()
+        time4 = System.currentTimeMillis()
       }
       /*for (x <- 1 to 100) {
         writeDoc(null, writer)

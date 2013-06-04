@@ -25,6 +25,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>my.finder</groupId>
+            <artifactId>javahelper</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-slf4j_2.10</artifactId>
         </dependency>

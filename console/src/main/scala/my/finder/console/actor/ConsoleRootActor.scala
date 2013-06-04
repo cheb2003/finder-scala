@@ -11,7 +11,8 @@ import scala.concurrent.Future
 import my.finder.console.service.{Index, IndexManage}
 import java.util.{TimerTask, Timer}
 import akka.routing.RoundRobinRouter
-
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 /**
  *
  *
@@ -32,6 +33,10 @@ class ConsoleRootActor extends Actor {
     }
     case msg: CompleteIncIndexTask => {
       if(msg.successCount > 0) search ! IncIndexeMessage(msg.name, msg.date)
+
+      context.system.scheduler.scheduleOnce(0 seconds){
+        self ! IndexIncremetionalTaskMessage("",null)
+      }
     }
     case msg: CompleteSubTask => indexManagerActor ! msg
 
