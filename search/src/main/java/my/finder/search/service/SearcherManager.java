@@ -31,7 +31,7 @@ public class SearcherManager {
     @Value("#{conf.workDir}")
     private String wordDir;
 
-    /*public void init(){
+    public void init(){
         IndexReader reader;
         try {
             Directory dir= FSDirectory.open(new File(wordDir));
@@ -40,8 +40,9 @@ public class SearcherManager {
             logger.error("{}", e);
             throw new RuntimeException(e);
         }
-        ddSearcher = new IndexSearcher(reader);
-    }*/
+        ddIndex.setSearcher(new IndexSearcher(reader));
+        //ddSearcher =
+    }
     public IndexSearcher getSearcher(String name) {
         return ddIndex.getSearcher();
     }

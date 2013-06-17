@@ -112,7 +112,7 @@ public class SearchController {
         }
 
         Query condition;
-        QueryParser parser = new QueryParser(Version.LUCENE_40,"pName", new MyAnalyzer());
+        QueryParser parser = new QueryParser(Version.LUCENE_43,"pName", new MyAnalyzer());
         BooleanQuery bq = new BooleanQuery();
         if (!"".equals(indexCode)) {
             try {
@@ -198,7 +198,7 @@ public class SearchController {
         if (size < 1 || size > 100) {
             size = 1;
         }
-        QueryParser parser = new QueryParser(Version.LUCENE_40,"sku", new KeywordAnalyzer());
+        QueryParser parser = new QueryParser(Version.LUCENE_43,"sku", new KeywordAnalyzer());
         IndexSearcher searcher = searcherManager.getSearcher("dd_product");
         if (searcher == null) {
             return empty();
@@ -286,7 +286,7 @@ public class SearchController {
             keyword = QueryParser.escape(keyword);
             String[] keywords = keyword.split(" ");
 
-            QueryParser parser = new QueryParser(Version.LUCENE_40,"pName", new MyAnalyzer());
+            QueryParser parser = new QueryParser(Version.LUCENE_43,"pName", new MyAnalyzer());
             String langName = null;
             if ("ru".equals(country)) {
                 langName = "pNameRU";
@@ -440,7 +440,7 @@ public class SearchController {
         if (size < 1 || size > 100) {
             size = 1;
         }
-        QueryParser parser = new QueryParser(Version.LUCENE_40,"businessName", new KeywordAnalyzer());
+        QueryParser parser = new QueryParser(Version.LUCENE_43,"businessName", new KeywordAnalyzer());
         IndexSearcher searcher = searcherManager.getSearcher("dd_product");
         if (searcher == null) {
             return empty();
@@ -511,7 +511,7 @@ public class SearchController {
         if (size < 1 || size > 100) {
             size = 1;
         }
-        QueryParser parser = new QueryParser(Version.LUCENE_40,"indexCode", new MyAnalyzer());
+        QueryParser parser = new QueryParser(Version.LUCENE_43,"indexCode", new MyAnalyzer());
         IndexSearcher searcher = searcherManager.getSearcher("dd_product");
         if (searcher == null) {
             return empty();

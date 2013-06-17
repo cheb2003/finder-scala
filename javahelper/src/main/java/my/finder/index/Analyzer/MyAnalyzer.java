@@ -15,9 +15,9 @@ import java.io.Reader;
 public class MyAnalyzer extends Analyzer {
     @Override
     protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-        final WhitespaceTokenizer src = new WhitespaceTokenizer(Version.LUCENE_40, reader);
+        final WhitespaceTokenizer src = new WhitespaceTokenizer(Version.LUCENE_43, reader);
 
-        TokenStream tok = new LowerCaseFilter(Version.LUCENE_40, src);
+        TokenStream tok = new LowerCaseFilter(Version.LUCENE_43, src);
 
         return new TokenStreamComponents(src, tok) {
             @Override
