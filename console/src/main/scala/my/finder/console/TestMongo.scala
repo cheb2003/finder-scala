@@ -14,14 +14,16 @@ object TestMongo {
   def main(args: Array[String]) {
     /*Config.init
     println(Config.get("workDir"))*/
-    val uri = new MongoClientURI("mongodb://admin:admin@172.16.20.9/?authMechanism=MONGODB-CR")
+    val uri = new MongoClientURI("mongodb://admin:admin@172.16.40.65/?authMechanism=MONGODB-CR")
     val mongoClient =  MongoClient(uri)
     var productColl = mongoClient("dinobuydb")("ec_productinformation")
     //var q = ("ec_product" -> MongoDBObject("isstopsale_bit" -> false))
-    var q:DBObject = ("ec_productprice.unitprice_money" $gt 0) ++ ("ec_product.isstopsale_bit" -> false)
+    /*var q:DBObject = ("ec_productprice.unitprice_money" $gt 0) ++ ("ec_product.isstopsale_bit" -> false)*/
+    val q = MongoDBObject("productid_int" -> 200)
     //var q = MongoDBObject.empty
     //var q:DBObject = MongoDBObject("ec_product.isstopsale_bit" -> false)
     val fields = MongoDBObject("productid_int" -> 1,"ec_product.productaliasname_nvarchar" -> 1
+      ,"productkeyid_nvarchar" -> 1
       ,"ec_product.createtime_DateTime" -> 1,"ec_product.discountprice_money" -> 1
       ,"ec_product.productscore_float" -> 1)
     val b = MongoDBList.newBuilder
@@ -33,11 +35,12 @@ object TestMongo {
       productColl.update[DBObject,DBObject](MongoDBObject("_id" -> x._id),$set ("ec_product.createtime_datetime" -> new Date()))
     }
 
-    println(productColl.findOne())*/
-    val sdf: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss")
+    */
+    println(productColl.findOne(q,fields))
+    /*val sdf: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss")
     val from = sdf.parse("2013-05-26-23-00-00")
     val to = sdf.parse("2013-06-01-00-00-00")
-    println(productColl.count("ec_product.createtime_datetime" $gt from $lt to ))
+    println(productColl.count("ec_product.createtime_datetime" $gt from $lt to ))*/
     //val sort = MongoDBObject("productid_int" -> -1)
     //,"ec_product.producttypeid_int" -> 1
     /*for(x <- Source.fromFile("f:/product.json").getLines()){

@@ -32,10 +32,11 @@ public class SearcherManager {
     private String wordDir;
 
     public void init(){
-        IndexReader reader;
+        DirectoryReader reader;
         try {
             Directory dir= FSDirectory.open(new File(wordDir));
             reader = DirectoryReader.open(dir);
+            ddIndex.setMajor(reader);
         } catch (IOException e) {
             logger.error("{}", e);
             throw new RuntimeException(e);
@@ -50,27 +51,28 @@ public class SearcherManager {
     public void updateIncrementalIndex(String name, Date date) {
         logger.info("receive index incremental {},{}",name,date);
         try {
-            if (ddIndex.getDate().equals(date)) {
-                logger.info("update index incremental {},{}",name,date);
-                DirectoryReader oldReader = ddIndex.getInc();
-                if (oldReader == null) {
-                    Directory dirInc = FSDirectory.open(new File(wordDir + Util.getIncrementalPath(name, date)));
-                    try{
-                        oldReader = DirectoryReader.open(dirInc);
-                    } catch (IndexNotFoundException e){
+            logger.info("update index incremental {},{}",name,date);
+            DirectoryReader oldReader = ddIndex.getInc();
+            if (oldReader == null) {
+                Directory dirInc = FSDirectory.open(new File(wordDir + "_inc"));
+                try{
+                    oldReader = DirectoryReader.open(dirInc);
+                } catch (IndexNotFoundException e){
 
-                    }
-                    ddIndex.setInc(oldReader);
-                } else {
-                    DirectoryReader newReader = DirectoryReader.openIfChanged(oldReader);
-                    ddIndex.setInc(newReader);
-                    MultiReader multiReader = new MultiReader(ddIndex.getMajor(),ddIndex.getInc());
-                    IndexSearcher newSearcher = new IndexSearcher(multiReader);
-                    ddIndex.setSearcher(newSearcher);
-                    oldReader.close();
                 }
-
+                ddIndex.setInc(oldReader);
+            } else {
+                DirectoryReader newReader = DirectoryReader.openIfChanged(oldReader);
+                ddIndex.setInc(newReader);
+                MultiReader multiReader = new MultiReader(ddIndex.getMajor(),ddIndex.getInc());
+                IndexSearcher newSearcher = new IndexSearcher(multiReader);
+                ddIndex.setSearcher(newSearcher);
+                oldReader.close();
             }
+            /*if (ddIndex.getDate().equals(date)) {
+
+
+            }*/
         } catch (IOException e) {
             logger.error("{}",e);
         }

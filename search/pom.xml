@@ -20,6 +20,16 @@
     <artifactId>search</artifactId>
     <dependencies>
         <dependency>
+            <groupId>net.sf.trove4j</groupId>
+            <artifactId>trove4j</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>fudannlp</groupId>
+            <artifactId>fudannlp</artifactId>
+            <version>1.57</version>
+        </dependency>
+        <dependency>
             <groupId>org.codehaus.jackson</groupId>
             <artifactId>jackson-core-asl</artifactId>
             <version>1.9.5</version>
