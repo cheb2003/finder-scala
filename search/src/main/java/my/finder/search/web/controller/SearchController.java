@@ -547,7 +547,15 @@ public class SearchController {
                 }
                 bqLang.add(bqKeyRu, BooleanClause.Occur.SHOULD);
             }
-
+            //查品类
+            BooleanQuery bqTypes = new BooleanQuery();
+            for (String k : keywords) {
+                Term term = new Term("pTypeName", k);
+                TermQuery pq = new TermQuery(term);
+                pq.setBoost(30.0f);
+                bqTypes.add(pq, BooleanClause.Occur.MUST);
+            }
+            bq.add(bqTypes, BooleanClause.Occur.SHOULD);
             //查分词
             BooleanQuery bqSegmentWord = new BooleanQuery();
             for (String k : keywords) {
