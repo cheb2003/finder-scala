@@ -33,6 +33,8 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  *
@@ -42,7 +44,8 @@ import java.util.*;
 public class SearchController {
     private Logger logger = LoggerFactory.getLogger(SearchController.class);
     private ObjectMapper objectMapper = new ObjectMapper();
-
+    private String regEx = "[`\\-~!@#$%^&*()+_=|{}':;',\\[\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。，、？]";
+    private Pattern p = Pattern.compile(regEx);
     @Value("#{conf.workDir}")
     private String workDir;
     @Autowired
@@ -486,7 +489,8 @@ public class SearchController {
 
 
     private String search(HttpServletRequest request, String format) {
-        String keyword = StringUtils.defaultIfBlank(request.getParameter("keyword"), "").toLowerCase().trim().replaceAll("\\s+", " ");
+        Matcher m = p.matcher(StringUtils.defaultIfBlank(request.getParameter("keyword"), "").toLowerCase());
+        String keyword = m.replaceAll("").trim().replaceAll("~!@#$%^&*()_+","").replaceAll("\\s+", " ");
         if ("".equals(keyword)) {
             return empty();
         }
@@ -606,7 +610,7 @@ public class SearchController {
                 TermQuery sourceKeywordTermPq = new TermQuery(sourceKeywordTerm);
                 bqSourceKey.add(sourceKeywordTermPq, BooleanClause.Occur.MUST);
             }
-            logger.info("search sourceKeywordCN :{}",bqSourceKey);
+            //logger.info("search sourceKeywordCN :{}",bqSourceKey);
             TopDocs sourceKeywordTopDocs = searcher.search(bqSourceKey, 1);
             ScoreDoc[] sourceKeywordScoreDocs = sourceKeywordTopDocs.scoreDocs;
             String sourceKeywordCN = null;
@@ -709,6 +713,7 @@ public class SearchController {
     private String searchByShopFormat(HttpServletRequest request, String format) {
         Map<String, Object> result = new HashMap<String, Object>();
         String shop = StringUtils.defaultIfBlank(request.getParameter("shop"), "").toLowerCase();
+        String indexCode = StringUtils.defaultIfBlank(request.getParameter("indexcode"), "");
         String sort = StringUtils.defaultIfBlank(request.getParameter("sort"), "");
         if ("".equals(shop)) {
             return empty();
@@ -743,13 +748,22 @@ public class SearchController {
         int start = (currentPage - 1) * size + 1;
         //排序
         Sort sot = sorts(sort);
+        BooleanQuery bq = new BooleanQuery();
+        if (!"".equals(indexCode)) {
+            try {
+                bq.add(parser.parse("indexCode:" + indexCode + "*"), BooleanClause.Occur.MUST);
+            } catch (Exception e) {
+                return getErrorJson("parse indexCode query failed,value:%s", indexCode);
+            }
+        }
+        try {
+            bq.add(parser.parse(shop), BooleanClause.Occur.MUST);
+        } catch (Exception e) {
+            return getErrorJson("parse shop name query failed,value:%s", indexCode);
+        }
         //分页
         try {
             TopFieldCollector tsdc = TopFieldCollector.create(sot, start + size, false, false, false, false);
-            Query q = parser.parse(shop);
-            BooleanQuery bq = new BooleanQuery();
-            bq.add(q, BooleanClause.Occur.MUST);
-            //skuPriority(bq);
             logger.info("{}", bq);
             searcher.search(bq, tsdc);
             result.put("totalHits", tsdc.getTotalHits());
