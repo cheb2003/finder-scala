@@ -54,13 +54,34 @@ public class SearchController {
     @RequestMapping(value = "/product/json", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
     @ResponseBody
     public String searchJson(HttpServletRequest request) {
-        return search(request, "json");
+        String keyword = StringUtils.defaultIfBlank(request.getParameter("keyword"), "");
+        String s = search(keyword, request, "json");
+        try {
+            Map map = objectMapper.readValue(s, Map.class);
+            if (map.get("totalHits").equals(0)) {
+                String[] strings = searcherManager.getSpellChecker().suggestSimilar(keyword, 1);
+                if(strings.length > 0){
+                    String ss = search(strings[0],request,"json");
+                    Map map1 = objectMapper.readValue(ss, Map.class);
+                    if(map1.get("totalHits").equals(0)){
+                        return s;
+                    } else {
+                        map.put("suggestWord",strings[0]);
+                        return objectMapper.writeValueAsString(map);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return s;
     }
 
     @RequestMapping(value = "/product/xml", method = RequestMethod.POST, produces = "text/xml;charset=utf-8")
     @ResponseBody
     public String searchXml(HttpServletRequest request) {
-        return search(request, "xml");
+        String keyword = StringUtils.defaultIfBlank(request.getParameter("keyword"), "");
+        return search(keyword,request, "xml");
     }
 
     @RequestMapping(value = "/product/shop/json", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
@@ -488,8 +509,8 @@ public class SearchController {
     }
 
 
-    private String search(HttpServletRequest request, String format) {
-        Matcher m = p.matcher(StringUtils.defaultIfBlank(request.getParameter("keyword"), "").toLowerCase());
+    private String search(String key, HttpServletRequest request, String format) {
+        Matcher m = p.matcher(key.toLowerCase());
         String keyword = m.replaceAll("").trim().replaceAll("~!@#$%^&*()_+","").replaceAll("\\s+", " ");
         if ("".equals(keyword)) {
             return empty();
@@ -551,15 +572,22 @@ public class SearchController {
                 }
                 bqLang.add(bqKeyRu, BooleanClause.Occur.SHOULD);
             }
-            //查品类
+
+            //查品类，品牌
             BooleanQuery bqTypes = new BooleanQuery();
+            BooleanQuery bqBrands = new BooleanQuery();
             for (String k : keywords) {
                 Term term = new Term("pTypeName", k);
+                Term brandterm = new Term("pBrandName", k);
                 TermQuery pq = new TermQuery(term);
-                pq.setBoost(30.0f);
+                TermQuery brandpq = new TermQuery(brandterm);
+                pq.setBoost(1.0f);
+                brandpq.setBoost(1.0f);
                 bqTypes.add(pq, BooleanClause.Occur.MUST);
+                bqBrands.add(brandpq, BooleanClause.Occur.MUST);
             }
             bq.add(bqTypes, BooleanClause.Occur.SHOULD);
+            bq.add(bqBrands, BooleanClause.Occur.SHOULD);
             //查分词
             BooleanQuery bqSegmentWord = new BooleanQuery();
             for (String k : keywords) {

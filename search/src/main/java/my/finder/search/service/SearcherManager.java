@@ -7,6 +7,7 @@ import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.spell.SpellChecker;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.slf4j.Logger;
@@ -30,8 +31,10 @@ public class SearcherManager {
     private Index ddIndex = new Index();
     @Value("#{conf.workDir}")
     private String wordDir;
-
-    public void init(){
+    @Value("#{conf.spellCheckDir}")
+    private String spellCheckDir;
+    private SpellChecker sc = null;
+    public void init() throws IOException {
         DirectoryReader reader;
         try {
             Directory dir= FSDirectory.open(new File(wordDir));
@@ -42,6 +45,8 @@ public class SearcherManager {
             throw new RuntimeException(e);
         }
         ddIndex.setSearcher(new IndexSearcher(reader));
+        Directory dir = FSDirectory.open(new File(spellCheckDir));
+        sc = new SpellChecker(dir);
         //ddSearcher =
     }
     public IndexSearcher getSearcher(String name) {
@@ -118,5 +123,9 @@ public class SearcherManager {
             logger.error("{}", e);
             throw new RuntimeException(e);
         }
+    }
+
+    public SpellChecker getSpellChecker() {
+        return sc;
     }
 }
