@@ -551,18 +551,21 @@ public class SearchController {
             QueryParser parser = new QueryParser(Version.LUCENE_43, "pName", new MyAnalyzer());
             String langName = null;
             String langSegmentWord = "segmentWordEn";
+            String langTypeName = "pTypeNameEN";
             if ("ru".equals(country)) {
                 langName = "pNameRU";
                 langSegmentWord = "segmentWordRu";
+                langTypeName = "pTypeNameRU";
             }
             if ("br".equals(country)) {
                 langName = "pNameBR";
                 langSegmentWord = "segmentWordBr";
+                langTypeName = "pTypeNameBR";
             }
             BooleanQuery bq = new BooleanQuery();
             BooleanQuery bqLang = new BooleanQuery();
             BooleanQuery bqKeyRu = new BooleanQuery();
-            BooleanQuery bqKeyEn = new BooleanQuery();
+            BooleanQuery bqAll = new BooleanQuery();
             if (langName != null) {
                 for (String k : keywords) {
                     Term term = new Term(langName, k);
@@ -577,7 +580,7 @@ public class SearchController {
             BooleanQuery bqTypes = new BooleanQuery();
             BooleanQuery bqBrands = new BooleanQuery();
             for (String k : keywords) {
-                Term term = new Term("pTypeName", k);
+                Term term = new Term(langTypeName, k);
                 Term brandterm = new Term("pBrandName", k);
                 TermQuery pq = new TermQuery(term);
                 TermQuery brandpq = new TermQuery(brandterm);
@@ -611,7 +614,7 @@ public class SearchController {
             Analyzer analyzer = new EnglishAnalyzer(Version.LUCENE_43);
             QueryParser qp = new QueryParser(Version.LUCENE_43, "pName", analyzer);
             Query qKeyword = qp.parse(keyword.replace(" ", " AND "));
-            Query condition;
+            Query indexCodecondition = null;
             /*for (String k : keywords) {
                 Term term = new Term("pName", k);
                 PrefixQuery pq = new PrefixQuery(term);
@@ -621,8 +624,8 @@ public class SearchController {
             bq.add(bqLang, BooleanClause.Occur.SHOULD);
             if (!"".equals(indexCode)) {
                 try {
-                    condition = parser.parse("indexCode:" + indexCode + "*");
-                    bq.add(condition, BooleanClause.Occur.MUST);
+                    indexCodecondition = parser.parse("indexCode:" + indexCode + "*");
+                    bqAll.add(indexCodecondition, BooleanClause.Occur.MUST);
                 } catch (Exception e) {
                     return getErrorJson("parse indexCode query failed,value:%s", indexCode);
                 }
@@ -666,8 +669,10 @@ public class SearchController {
             //分页
             TopFieldCollector tsdc = TopFieldCollector.create(sot, start + size, false, false, false, false);
             //skuPriority(bq);
-            logger.info("{}", bq);
-            searcher.search(bq, tsdc);
+            bqAll.add(bq, BooleanClause.Occur.MUST);
+            //bqAll.add(indexCodecondition, BooleanClause.Occur.MUST);
+            logger.info("{}", bqAll);
+            searcher.search(bqAll, tsdc);
             result.put("totalHits", tsdc.getTotalHits());
 
             //从0开始计算
